@@ -82,9 +82,6 @@ export default function RecentAssessments() {
         .order("assessment_date", { ascending: false })
         .limit(8);
 
-      console.log("Assessment data:", assessmentData);
-      console.log("Assessment error:", assessmentError);
-
       if (assessmentError) {
         setError(`Assessment query failed: ${assessmentError.message}`);
         setLoading(false);
@@ -106,9 +103,6 @@ export default function RecentAssessments() {
         .select("patient_id, nhi_number")
         .in("patient_id", patientIds);
 
-      console.log("Patient data:", patientData);
-      console.log("Patient error:", patientError);
-
       if (patientError) {
         setError(`Patient query failed: ${patientError.message}`);
         setLoading(false);
@@ -119,9 +113,6 @@ export default function RecentAssessments() {
         .from("Patient Name")
         .select("PATIENTpatient_id, given_name, family_name")
         .in("PATIENTpatient_id", patientIds);
-
-      console.log("Patient Name data:", patientNameData);
-      console.log("Patient Name error:", patientNameError);
 
       if (patientNameError) {
         setError(`Patient Name query failed: ${patientNameError.message}`);
@@ -144,14 +135,14 @@ export default function RecentAssessments() {
 
       const mappedRows: RecentAssessmentDisplay[] = assessments.map((assessment) => {
         const patient = patientMap.get(assessment.PATIENTpatient_id);
-        const patientName = patientNameMap.get(assessment.PATIENTpatient_id);
+        const name = patientNameMap.get(assessment.PATIENTpatient_id);
 
         return {
           id: assessment.assessment_id,
           nhiNumber: patient?.nhi_number ?? "N/A",
-          patientName: patientName
-            ? `${patientName.given_name} ${patientName.family_name}`
-            : "Unknown Patient",
+          patientName: name
+            ? `${name.given_name} ${name.family_name}`
+            : `Patient #${assessment.PATIENTpatient_id}`,
           date: formatDate(assessment.assessment_date),
           versionNumber: `v${assessment.current_version}`,
           status: assessment.status,
