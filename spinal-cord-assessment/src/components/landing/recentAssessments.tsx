@@ -1,26 +1,170 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Fira_Sans } from "next/font/google";
+import { supabase } from "@/lib/supabaseClient";
 
 const fira = Fira_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-type Assessment = {
+type AssessmentRow = {
+  assessment_id: number;
+  assessment_date: string;
+  status: string;
+  current_version: number;
+  PATIENTpatient_id: number;
+};
+
+type PatientRow = {
+  patient_id: number;
+  nhi_number: string;
+};
+
+type PatientNameRow = {
+  PATIENTpatient_id: number;
+  given_name: string;
+  family_name: string;
+};
+
+type RecentAssessmentDisplay = {
   id: number;
   nhiNumber: string;
   patientName: string;
   date: string;
   versionNumber: string;
-  status: "DRAFT" | "FINALISED" | "IN PROGRESS";
+  status: string;
 };
 
-type Props = {
-  assessments?: Assessment[];
-};
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
 
-export default function RecentAssessments({ assessments = [] }: Props) {
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
+function getStatusColor(status: string) {
+  switch (status.toUpperCase()) {
+    case "DRAFT":
+      return "#C96A2B";
+    case "FINALISED":
+      return "#3E8E41";
+    case "IN PROGRESS":
+      return "#2F66C8";
+    default:
+      return "#15284C";
+  }
+}
+
+export default function RecentAssessments() {
+  const [rows, setRows] = useState<RecentAssessmentDisplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchRecentAssessments() {
+      setLoading(true);
+      setError(null);
+
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("Assessment")
+        .select(
+          "assessment_id, assessment_date, status, current_version, PATIENTpatient_id"
+        )
+        .order("assessment_date", { ascending: false })
+        .limit(8);
+
+      console.log("Assessment data:", assessmentData);
+      console.log("Assessment error:", assessmentError);
+
+      if (assessmentError) {
+        setError(`Assessment query failed: ${assessmentError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const assessments = (assessmentData ?? []) as AssessmentRow[];
+
+      if (assessments.length === 0) {
+        setRows([]);
+        setLoading(false);
+        return;
+      }
+
+      const patientIds = [...new Set(assessments.map((a) => a.PATIENTpatient_id))];
+
+      const { data: patientData, error: patientError } = await supabase
+        .from("Patient")
+        .select("patient_id, nhi_number")
+        .in("patient_id", patientIds);
+
+      console.log("Patient data:", patientData);
+      console.log("Patient error:", patientError);
+
+      if (patientError) {
+        setError(`Patient query failed: ${patientError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const { data: patientNameData, error: patientNameError } = await supabase
+        .from("Patient Name")
+        .select("PATIENTpatient_id, given_name, family_name")
+        .in("PATIENTpatient_id", patientIds);
+
+      console.log("Patient Name data:", patientNameData);
+      console.log("Patient Name error:", patientNameError);
+
+      if (patientNameError) {
+        setError(`Patient Name query failed: ${patientNameError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const patients = (patientData ?? []) as PatientRow[];
+      const patientNames = (patientNameData ?? []) as PatientNameRow[];
+
+      const patientMap = new Map<number, PatientRow>();
+      patients.forEach((patient) => {
+        patientMap.set(patient.patient_id, patient);
+      });
+
+      const patientNameMap = new Map<number, PatientNameRow>();
+      patientNames.forEach((name) => {
+        patientNameMap.set(name.PATIENTpatient_id, name);
+      });
+
+      const mappedRows: RecentAssessmentDisplay[] = assessments.map((assessment) => {
+        const patient = patientMap.get(assessment.PATIENTpatient_id);
+        const patientName = patientNameMap.get(assessment.PATIENTpatient_id);
+
+        return {
+          id: assessment.assessment_id,
+          nhiNumber: patient?.nhi_number ?? "N/A",
+          patientName: patientName
+            ? `${patientName.given_name} ${patientName.family_name}`
+            : "Unknown Patient",
+          date: formatDate(assessment.assessment_date),
+          versionNumber: `v${assessment.current_version}`,
+          status: assessment.status,
+        };
+      });
+
+      setRows(mappedRows);
+      setLoading(false);
+    }
+
+    fetchRecentAssessments();
+  }, []);
+
   return (
     <section
       className={fira.className}
@@ -32,7 +176,7 @@ export default function RecentAssessments({ assessments = [] }: Props) {
       <h2
         style={{
           fontSize: "24px",
-          fontWeight: 600,
+          fontWeight: 700,
           marginBottom: "12px",
         }}
       >
@@ -41,8 +185,10 @@ export default function RecentAssessments({ assessments = [] }: Props) {
 
       <div
         style={{
-          border: "2px solid #5f6f8c",
-          backgroundColor: "#f7f7f4",
+          border: "2px solid #5F6F8C",
+          backgroundColor: "#F7F7F4",
+          width: "100%",
+          overflow: "hidden",
         }}
       >
         <table
@@ -54,7 +200,7 @@ export default function RecentAssessments({ assessments = [] }: Props) {
           <thead>
             <tr
               style={{
-                borderBottom: "2px solid #5f6f8c",
+                borderBottom: "2px solid #5F6F8C",
                 textAlign: "left",
               }}
             >
@@ -67,28 +213,65 @@ export default function RecentAssessments({ assessments = [] }: Props) {
           </thead>
 
           <tbody>
-            {assessments.length === 0 ? (
+            {loading ? (
               <tr>
                 <td
                   colSpan={5}
                   style={{
-                    padding: "24px",
+                    padding: "24px 16px",
                     textAlign: "center",
-                    color: "#6b7280",
+                    color: "#6B7280",
+                  }}
+                >
+                  Loading recent assessments...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    color: "#B91C1C",
+                  }}
+                >
+                  {error}
+                </td>
+              </tr>
+            ) : rows.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "24px 16px",
+                    textAlign: "center",
+                    color: "#6B7280",
                   }}
                 >
                   No recent assessments to display.
                 </td>
               </tr>
             ) : (
-              assessments.map((assessment) => (
-                <tr key={assessment.id} style={{ borderBottom: "1px solid #8a97ad" }}>
-                  <td style={{ padding: "14px 16px" }}>{assessment.nhiNumber}</td>
-                  <td style={{ padding: "14px 16px" }}>{assessment.patientName}</td>
-                  <td style={{ padding: "14px 16px" }}>{assessment.date}</td>
-                  <td style={{ padding: "14px 16px" }}>{assessment.versionNumber}</td>
-                  <td style={{ padding: "14px 16px", fontWeight: 500 }}>
-                    {assessment.status}
+              rows.map((row) => (
+                <tr
+                  key={row.id}
+                  style={{
+                    borderBottom: "1px solid #8A97AD",
+                  }}
+                >
+                  <td style={{ padding: "14px 16px" }}>{row.nhiNumber}</td>
+                  <td style={{ padding: "14px 16px" }}>{row.patientName}</td>
+                  <td style={{ padding: "14px 16px" }}>{row.date}</td>
+                  <td style={{ padding: "14px 16px" }}>{row.versionNumber}</td>
+                  <td
+                    style={{
+                      padding: "14px 16px",
+                      color: getStatusColor(row.status),
+                      fontWeight: 600,
+                    }}
+                  >
+                    {row.status}
                   </td>
                 </tr>
               ))
