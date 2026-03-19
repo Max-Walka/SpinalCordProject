@@ -1,95 +1,104 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
-type Assessment = {
-  nhi: string;
-  patient_name: string;
-  review_date: string;
-};
-
 type Review = {
   nhi: string;
   name: string;
   date: string;
-  isToday: boolean;
+  isToday?: boolean;
 };
 
-const UpcomingReviews: React.FC = () => {
-  const [reviews, setReviews] = useState<Review[]>([]);
+const demoReviews: Review[] = [
+  {
+    nhi: "BHD21SE",
+    name: "Michael Turner",
+    date: "Today",
+    isToday: true,
+  },
+  {
+    nhi: "ABF24TH",
+    name: "Ethan Hughes",
+    date: "30/03/2026",
+  },
+  {
+    nhi: "KAQ92YG",
+    name: "Lauren Hayes",
+    date: "09/04/2026",
+  },
+];
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      const { data, error } = await supabase
-        .from("assessments")
-        .select("nhi, patient_name, review_date")
-        .order("review_date", { ascending: true })
-        .limit(5);
-
-      if (error) {
-        console.error("Error fetching reviews:", error);
-        return;
-      }
-
-      if (!data) return;
-
-      const today = new Date().toISOString().split("T")[0];
-
-      const formatted: Review[] = data.map((item: Assessment) => {
-        const isToday = item.review_date === today;
-
-        return {
-          nhi: item.nhi,
-          name: item.patient_name,
-          date: isToday
-            ? "Today"
-            : new Date(item.review_date).toLocaleDateString("en-NZ"),
-          isToday,
-        };
-      });
-
-      setReviews(formatted);
-    };
-
-    fetchReviews();
-  }, []);
-
+export default function UpcomingReviews() {
   return (
-    <div className="bg-white border border-gray-300 rounded-md p-4 w-full max-w-md">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
+    <div
+      style={{
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #D6D6D6",
+        padding: "18px",
+        color: "#15284C",
+      }}
+    >
+      <h2
+        style={{
+          fontSize: "20px",
+          fontWeight: 600,
+          margin: "0 0 16px 0",
+        }}
+      >
         Upcoming Reviews
       </h2>
 
-      <div className="space-y-3">
-        {reviews.length === 0 ? (
-          <p className="text-sm text-gray-500">No upcoming reviews</p>
-        ) : (
-          reviews.map((review, index) => (
+      {demoReviews.length === 0 ? (
+        <p
+          style={{
+            margin: 0,
+            fontSize: "14px",
+            fontWeight: 400,
+            color: "#6B7280",
+          }}
+        >
+          No upcoming reviews
+        </p>
+      ) : (
+        <div>
+          {demoReviews.map((review, index) => (
             <div
-              key={index}
-              className="flex justify-between items-center border-b border-gray-200 pb-2 last:border-none"
+              key={`${review.nhi}-${index}`}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "14px 0",
+                borderBottom:
+                  index === demoReviews.length - 1
+                    ? "none"
+                    : "1px solid #E5E7EB",
+              }}
             >
-              <div className="flex gap-4 text-sm text-gray-700">
-                <span className="font-medium text-gray-600 w-[80px]">
-                  {review.nhi}
-                </span>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "18px",
+                  fontSize: "14px",
+                  fontWeight: 400,
+                  color: "#15284C",
+                }}
+              >
+                <span style={{ minWidth: "86px" }}>{review.nhi}</span>
                 <span>{review.name}</span>
               </div>
 
               <span
-                className={`text-sm font-medium ${
-                  review.isToday ? "text-red-500" : "text-gray-600"
-                }`}
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 400,
+                  color: review.isToday ? "#C53B35" : "#15284C",
+                }}
               >
                 {review.date}
               </span>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default UpcomingReviews;
+}

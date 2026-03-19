@@ -1,256 +1,268 @@
 "use client";
 
-import { useEffect, useState, useMemo, Fragment } from "react";
-import { useRouter } from "next/navigation";
-import { Fira_Sans } from "next/font/google";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useMemo, useState } from "react";
 
-const fira = Fira_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+export type DraftStatus = "OPEN" | "DRAFT" | "FINALIZED";
 
-// --- Types ---
-type AssessmentRow = {
-  assessment_id: number;
-  assessment_date: string;
-  status: string;
-  current_version: number;
-  PATIENTpatient_id: number;
-};
-
-type PatientRow = {
-  patient_id: number;
-  nhi_number: string;
-};
-
-type PatientNameRow = {
-  PATIENTpatient_id: number;
-  given_name: string;
-  family_name: string;
-};
-
-type DraftDisplay = {
-  id: number;
-  patientId: number;
-  nhiNumber: string;
+export type DraftAssessment = {
+  id: string;
+  nhi: string;
   patientName: string;
-  date: string;
-  versionNumber: string;
-  status: string;
+  dateLastEditedISO: string;
+  versionNumber: number;
+  status: DraftStatus;
 };
 
-// --- Helpers ---
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+const STORAGE_KEY = "spinal_cord_assessment_drafts_v1";
+
+const seedDrafts: DraftAssessment[] = [
+  {
+    id: "draft-aca31fm",
+    nhi: "ACA31FM",
+    patientName: "Sarah Collins",
+    dateLastEditedISO: "2026-03-12T09:10:00.000Z",
+    versionNumber: 1,
+    status: "OPEN",
+  },
+  {
+    id: "draft-bgj06as",
+    nhi: "BGJ06AS",
+    patientName: "Noah Mitchell",
+    dateLastEditedISO: "2026-02-22T14:40:00.000Z",
+    versionNumber: 1,
+    status: "OPEN",
+  },
+  {
+    id: "draft-cqy36ab",
+    nhi: "CQY36AB",
+    patientName: "Daniel Walker",
+    dateLastEditedISO: "2026-02-21T08:20:00.000Z",
+    versionNumber: 3,
+    status: "OPEN",
+  },
+  {
+    id: "draft-kaq92yg",
+    nhi: "KAQ92YG",
+    patientName: "Lauren Hayes",
+    dateLastEditedISO: "2026-02-20T13:15:00.000Z",
+    versionNumber: 1,
+    status: "DRAFT",
+  },
+  {
+    id: "draft-bhd21se",
+    nhi: "BHD21SE",
+    patientName: "Michael Turner",
+    dateLastEditedISO: "2026-01-28T11:05:00.000Z",
+    versionNumber: 2,
+    status: "OPEN",
+  },
+];
+
+function formatDate(iso: string) {
+  return new Intl.DateTimeFormat("en-NZ").format(new Date(iso));
 }
 
-function getStatusBadge(status: string) {
-  const s = status.toUpperCase();
-  let colors = { text: "#15284C", bg: "#F1F5F9", border: "#CBD5E1" };
-
-  if (s === "DRAFT" || s === "OPEN") {
-    colors = { text: "#92400E", bg: "#FEF3C7", border: "#F59E0B" };
-  } else if (s === "IN PROGRESS") {
-    colors = { text: "#1E40AF", bg: "#DBEAFE", border: "#3B82F6" };
+function labelStatus(status: DraftStatus) {
+  switch (status) {
+    case "OPEN":
+      return "Open";
+    case "FINALIZED":
+      return "Finalized";
+    case "DRAFT":
+    default:
+      return "Draft";
   }
-
-  return (
-    <span style={{
-      display: "inline-block",
-      padding: "2px 10px",
-      borderRadius: "12px",
-      fontSize: "11px",
-      fontWeight: 700,
-      textTransform: "uppercase",
-      backgroundColor: colors.bg,
-      color: colors.text,
-      border: `1px solid ${colors.border}`
-    }}>
-      {status}
-    </span>
-  );
 }
 
 export default function Drafts() {
-  const router = useRouter();
-  const [rows, setRows] = useState<DraftDisplay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [drafts, setDrafts] = useState<DraftAssessment[]>(seedDrafts);
+  const [openDraftId, setOpenDraftId] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchDrafts() {
-      setLoading(true);
-      setError(null);
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
 
-      // Fetch assessments that are NOT finalized
-      const { data: assessmentData, error: assessmentError } = await supabase
-        .from("Assessment")
-        .select("assessment_id, assessment_date, status, current_version, PATIENTpatient_id")
-        .neq("status", "FINALISED") 
-        .order("assessment_date", { ascending: false });
+      const parsed = JSON.parse(raw) as DraftAssessment[];
+      if (!Array.isArray(parsed)) return;
 
-      if (assessmentError) {
-        setError(`Fetch failed: ${assessmentError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      const assessments = (assessmentData ?? []) as AssessmentRow[];
-      if (assessments.length === 0) {
-        setRows([]);
-        setLoading(false);
-        return;
-      }
-
-      const patientIds = [...new Set(assessments.map((a) => a.PATIENTpatient_id))];
-
-      const [pRes, nRes] = await Promise.all([
-        supabase.from("Patient").select("patient_id, nhi_number").in("patient_id", patientIds),
-        supabase.from("Patient Name").select("PATIENTpatient_id, given_name, family_name").in("PATIENTpatient_id", patientIds),
-      ]);
-
-      const patientMap = new Map(pRes.data?.map(p => [p.patient_id, p]));
-      const nameMap = new Map(nRes.data?.map(n => [n.PATIENTpatient_id, n]));
-
-      const mappedRows: DraftDisplay[] = assessments.map((a) => {
-        const p = patientMap.get(a.PATIENTpatient_id);
-        const n = nameMap.get(a.PATIENTpatient_id);
-        return {
-          id: a.assessment_id,
-          patientId: a.PATIENTpatient_id,
-          nhiNumber: p?.nhi_number ?? "N/A",
-          patientName: n ? `${n.given_name} ${n.family_name}` : `Patient #${a.PATIENTpatient_id}`,
-          date: formatDate(a.assessment_date),
-          versionNumber: `v${a.current_version}`,
-          status: a.status,
-        };
-      });
-
-      setRows(mappedRows);
-      setLoading(false);
+      setDrafts(parsed);
+    } catch {
+      setDrafts(seedDrafts);
     }
-    fetchDrafts();
   }, []);
 
-  const filteredRows = useMemo(() => {
-    return rows.filter(r => 
-      r.patientName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      r.nhiNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
+    } catch {}
+  }, [drafts]);
+
+  const sortedDrafts = useMemo(() => {
+    return [...drafts].sort(
+      (a, b) =>
+        new Date(b.dateLastEditedISO).getTime() -
+        new Date(a.dateLastEditedISO).getTime()
     );
-  }, [rows, searchTerm]);
+  }, [drafts]);
+
+  const selectedDraft =
+    openDraftId !== null
+      ? sortedDrafts.find((draft) => draft.id === openDraftId) ?? null
+      : null;
 
   return (
-    <section className={fira.className} style={{ width: "100%", padding: "20px", color: "#15284C" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2 style={{ fontSize: "26px", fontWeight: 700 }}>Pending Drafts</h2>
-        
-        <input 
-          type="text" 
-          placeholder="Search Drafts..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+    <div
+      style={{
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #D6D6D6",
+        padding: "18px",
+        width: "100%",
+        color: "#15284C",
+      }}
+    >
+      <div
+        style={{
+          marginBottom: "14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <h2
           style={{
-            padding: "10px 15px",
-            borderRadius: "6px",
-            border: "2px solid #5F6F8C",
-            width: "300px",
-            outline: "none"
+            fontSize: "20px",
+            fontWeight: 600,
+            margin: 0,
           }}
-        />
+        >
+          Pending Drafts
+        </h2>
       </div>
 
-      <div style={{ border: "2px solid #5F6F8C", borderRadius: "8px", overflow: "hidden", backgroundColor: "#F7F7F4" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            fontSize: "14px",
+            color: "#15284C",
+          }}
+        >
           <thead>
-            <tr style={{ borderBottom: "2px solid #5F6F8C", textAlign: "left", backgroundColor: "#EEF2F7" }}>
-              <th style={{ padding: "14px 16px" }}>NHI Number</th>
-              <th style={{ padding: "14px 16px" }}>Patient Name</th>
-              <th style={{ padding: "14px 16px" }}>Date</th>
-              <th style={{ padding: "14px 16px" }}>Version</th>
-              <th style={{ padding: "14px 16px" }}>Status</th>
-              <th style={{ padding: "14px 16px" }}>Action</th>
+            <tr
+              style={{
+                borderBottom: "1px solid #D6D6D6",
+                textAlign: "left",
+              }}
+            >
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>NHI</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Patient Name</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Date</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Version</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Status</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Open</th>
             </tr>
           </thead>
 
           <tbody>
-            {loading ? (
-              <tr><td colSpan={6} style={{ padding: "30px", textAlign: "center" }}>Loading drafts...</td></tr>
-            ) : filteredRows.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: "30px", textAlign: "center" }}>No pending drafts found.</td></tr>
+            {sortedDrafts.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={6}
+                  style={{
+                    padding: "24px 12px",
+                    textAlign: "center",
+                    color: "#6B7280",
+                  }}
+                >
+                  No drafts yet
+                </td>
+              </tr>
             ) : (
-              filteredRows.map((row, index) => (
-                <Fragment key={row.id}>
-                  <tr
-                    style={{
-                      borderBottom: "1px solid #8A97AD",
-                      backgroundColor: expandedId === row.id ? "#E2E8F0" : index % 2 === 0 ? "transparent" : "#FFFFFF",
-                      transition: "0.2s"
-                    }}
-                  >
-                    <td style={{ padding: "14px 16px", fontWeight: 600 }}>{row.nhiNumber}</td>
-                    <td style={{ padding: "14px 16px" }}>{row.patientName}</td>
-                    <td style={{ padding: "14px 16px" }}>{row.date}</td>
-                    <td style={{ padding: "14px 16px" }}>{row.versionNumber}</td>
-                    <td style={{ padding: "14px 16px" }}>{getStatusBadge(row.status)}</td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <button 
-                        onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
-                        style={{
-                          backgroundColor: "#15284C",
-                          color: "#FFF",
-                          border: "none",
-                          padding: "6px 12px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          fontWeight: 600
-                        }}
-                      >
-                        {expandedId === row.id ? "Close" : "Open"}
-                      </button>
-                    </td>
-                  </tr>
-                  
-                  {expandedId === row.id && (
-                    <tr style={{ backgroundColor: "#F1F5F9" }}>
-                      <td colSpan={6} style={{ padding: "20px", borderBottom: "1px solid #8A97AD" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#FFF", padding: "15px", borderRadius: "6px", border: "1px solid #CBD5E1" }}>
-                          <div>
-                            <p style={{ margin: 0, fontWeight: 700 }}>Continue Assessment for {row.patientName}</p>
-                            <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#5F6F8C" }}>NHI: {row.nhiNumber} | Last Edited: {row.date}</p>
-                          </div>
-                          <button 
-                            onClick={() => router.push(`/assessment/${row.id}`)}
-                            style={{
-                              backgroundColor: "#3E8E41",
-                              color: "#FFF",
-                              border: "none",
-                              padding: "10px 20px",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                              fontWeight: 700
-                            }}
-                          >
-                            Resume Work &rarr;
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
+              sortedDrafts.map((draft) => (
+                <tr
+                  key={draft.id}
+                  style={{
+                    borderBottom: "1px solid #E5E7EB",
+                  }}
+                >
+                  <td style={{ padding: "14px 10px" }}>{draft.nhi}</td>
+                  <td style={{ padding: "14px 10px" }}>{draft.patientName}</td>
+                  <td style={{ padding: "14px 10px" }}>
+                    {formatDate(draft.dateLastEditedISO)}
+                  </td>
+                  <td style={{ padding: "14px 10px" }}>v{draft.versionNumber}</td>
+                  <td style={{ padding: "14px 10px" }}>{labelStatus(draft.status)}</td>
+                  <td style={{ padding: "14px 10px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDraftId(draft.id)}
+                      aria-label={`Open draft ${draft.nhi}`}
+                      style={{
+                        border: "1px solid #D6D6D6",
+                        backgroundColor: "#F3F4F6",
+                        color: "#15284C",
+                        padding: "6px 12px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Open
+                    </button>
+                  </td>
+                </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-    </section>
+
+      {selectedDraft ? (
+        <div
+          style={{
+            marginTop: "16px",
+            border: "1px solid #E5E7EB",
+            backgroundColor: "#F8FAFC",
+            padding: "14px",
+            color: "#15284C",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "start",
+              justifyContent: "space-between",
+              gap: "16px",
+            }}
+          >
+            <div>
+              <div style={{ marginBottom: "6px", fontWeight: 400 }}>
+                Selected draft: {selectedDraft.patientName} ({selectedDraft.nhi})
+              </div>
+              <div style={{ color: "#6B7280", fontSize: "14px", fontWeight: 400 }}>
+                Version v{selectedDraft.versionNumber} • Last edited{" "}
+                {formatDate(selectedDraft.dateLastEditedISO)}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setOpenDraftId(null)}
+              style={{
+                border: "1px solid #D6D6D6",
+                backgroundColor: "#FFFFFF",
+                color: "#15284C",
+                padding: "6px 12px",
+                fontSize: "12px",
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }

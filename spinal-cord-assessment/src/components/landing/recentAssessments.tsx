@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Fira_Sans } from "next/font/google";
 import { supabase } from "@/lib/supabaseClient";
-
-const fira = Fira_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 type AssessmentRow = {
   assessment_id: number;
@@ -114,7 +108,7 @@ export default function RecentAssessments() {
       }
 
       const { data: patientNameData, error: patientNameError } = await supabase
-        .from("Patient Name") // change if needed
+        .from("Patient Name")
         .select("PATIENTpatient_id, given_name, family_name")
         .in("PATIENTpatient_id", patientIds);
 
@@ -158,68 +152,88 @@ export default function RecentAssessments() {
   }, []);
 
   return (
-    <section
-      className={fira.className}
+    <div
       style={{
-        width: "100%",
+        backgroundColor: "#FFFFFF",
+        border: "1px solid #D6D6D6",
+        padding: "18px",
         color: "#15284C",
       }}
     >
       <h2
         style={{
-          fontSize: "24px",
-          fontWeight: 700,
-          marginBottom: "12px",
+          fontSize: "20px",
+          fontWeight: 600,
+          margin: "0 0 16px 0",
         }}
       >
         Recent Assessments
       </h2>
 
-      <div
-        style={{
-          border: "2px solid #5F6F8C",
-          backgroundColor: "#F7F7F4",
-          width: "100%",
-          overflow: "hidden",
-        }}
-      >
+      <div style={{ overflowX: "auto" }}>
         <table
           style={{
             width: "100%",
             borderCollapse: "collapse",
+            fontSize: "14px",
+            color: "#15284C",
           }}
         >
           <thead>
             <tr
               style={{
-                borderBottom: "2px solid #5F6F8C",
+                borderBottom: "1px solid #D6D6D6",
                 textAlign: "left",
               }}
             >
-              <th style={{ padding: "14px 16px" }}>NHI Number</th>
-              <th style={{ padding: "14px 16px" }}>Patient Name</th>
-              <th style={{ padding: "14px 16px" }}>Date</th>
-              <th style={{ padding: "14px 16px" }}>Version Number</th>
-              <th style={{ padding: "14px 16px" }}>Status</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>NHI Number</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Patient Name</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Date</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Version Number</th>
+              <th style={{ padding: "12px 10px", fontWeight: 600 }}>Status</th>
             </tr>
           </thead>
 
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} style={{ padding: "24px", textAlign: "center" }}>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "24px 12px",
+                    textAlign: "center",
+                    fontWeight: 400,
+                    color: "#6B7280",
+                  }}
+                >
                   Loading...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "red" }}>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "24px 12px",
+                    textAlign: "center",
+                    fontWeight: 400,
+                    color: "red",
+                  }}
+                >
                   {error}
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: "24px", textAlign: "center" }}>
+                <td
+                  colSpan={5}
+                  style={{
+                    padding: "24px 12px",
+                    textAlign: "center",
+                    fontWeight: 400,
+                    color: "#6B7280",
+                  }}
+                >
                   No recent assessments to display.
                 </td>
               </tr>
@@ -228,32 +242,24 @@ export default function RecentAssessments() {
                 <tr
                   key={row.id}
                   onClick={() => router.push(`/history/${row.patientId}`)}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "#EEF2F7")
-                  }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLTableRowElement).style.backgroundColor = "transparent")
-                  }
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F8FAFC";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
                   style={{
-                    borderBottom: "1px solid #8A97AD",
+                    borderBottom: "1px solid #E5E7EB",
                     cursor: "pointer",
                   }}
                 >
-                  <td style={{ padding: "14px 16px" }}>{row.nhiNumber}</td>
-
-                  <td style={{ padding: "14px 16px" }}>
-                    {row.patientName}
-                  </td>
-
-                  <td style={{ padding: "14px 16px" }}>{row.date}</td>
-
-                  <td style={{ padding: "14px 16px" }}>
-                    {row.versionNumber}
-                  </td>
-
+                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.nhiNumber}</td>
+                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.patientName}</td>
+                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.date}</td>
+                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.versionNumber}</td>
                   <td
                     style={{
-                      padding: "14px 16px",
+                      padding: "14px 10px",
                       color: getStatusColor(row.status),
                       fontWeight: 400,
                     }}
@@ -266,6 +272,6 @@ export default function RecentAssessments() {
           </tbody>
         </table>
       </div>
-    </section>
+    </div>
   );
 }
