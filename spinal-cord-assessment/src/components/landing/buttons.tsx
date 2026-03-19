@@ -1,0 +1,33 @@
+export default function Buttons() {
+  return (
+    <div style={{ display: "flex", gap: "12px" }}>
+      <button
+        style={{
+          padding: "12px 18px",
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #D6D6D6",
+          color: "#15284C",
+          fontSize: "14px",
+          fontWeight: 400,
+          cursor: "pointer",
+        }}
+      >
+        Search Patient
+      </button>
+
+      <button
+        style={{
+          padding: "12px 18px",
+          backgroundColor: "#2D3E5E",
+          color: "#FFFFFF",
+          border: "none",
+          fontSize: "14px",
+          fontWeight: 400,
+          cursor: "pointer",
+        }}
+      >
+        + New Patient
+      </button>
+    </div>
+  );
+}
