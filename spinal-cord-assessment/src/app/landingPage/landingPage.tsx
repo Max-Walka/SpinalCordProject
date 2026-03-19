@@ -9,48 +9,67 @@ export default function LandingPage() {
     <main
       style={{
         minHeight: "100vh",
-        padding: "24px 32px",
-        backgroundColor: "var(--bg-page)",
+        backgroundColor: "#F6F4EC",
       }}
     >
-      <div style={{ maxWidth: "1300px", margin: "0 auto" }}>
-        <Header />
+      {/* 🔥 FULL WIDTH HEADER */}
+      <Header />
 
-        <div style={{ marginTop: "32px" }}>
+      {/* 🔒 CONSTRAINED CONTENT */}
+      <div
+        style={{
+          maxWidth: "1300px",
+          margin: "0 auto",
+          padding: "32px 24px",
+        }}
+      >
+        {/* TITLE + BUTTONS */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "28px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "40px",
+              fontWeight: 700,
+              margin: 0,
+              color: "#15284C",
+            }}
+          >
+            ISNCSCI / ASRU
+          </h1>
+
+          <Buttons />
+        </div>
+
+        {/* MAIN GRID */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr",
+            gap: "28px",
+            alignItems: "start",
+          }}
+        >
+          {/* LEFT */}
+          <div>
+            <RecentAssessments />
+          </div>
+
+          {/* RIGHT */}
           <div
             style={{
               display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "28px",
+              flexDirection: "column",
+              gap: "20px",
             }}
           >
-            <h1
-              style={{
-                fontSize: "40px",
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              ISNCSCI / ASRU
-            </h1>
-
-            <Buttons />
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr",
-              gap: "28px",
-            }}
-          >
-            <RecentAssessments />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              <UpcomingReviews />
-              <Drafts />
-            </div>
+            <UpcomingReviews />
+            <Drafts />
           </div>
         </div>
       </div>

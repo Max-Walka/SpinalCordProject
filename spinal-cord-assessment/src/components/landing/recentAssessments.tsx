@@ -158,6 +158,9 @@ export default function RecentAssessments() {
         border: "1px solid #D6D6D6",
         padding: "18px",
         color: "#15284C",
+        height: "460px", // 👈 makes it tall again
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <h2
@@ -170,7 +173,12 @@ export default function RecentAssessments() {
         Recent Assessments
       </h2>
 
-      <div style={{ overflowX: "auto" }}>
+      <div
+        style={{
+          overflowY: "auto",
+          flex: 1, // 👈 fills remaining space
+        }}
+      >
         <table
           style={{
             width: "100%",
@@ -200,9 +208,8 @@ export default function RecentAssessments() {
                 <td
                   colSpan={5}
                   style={{
-                    padding: "24px 12px",
+                    padding: "24px",
                     textAlign: "center",
-                    fontWeight: 400,
                     color: "#6B7280",
                   }}
                 >
@@ -214,9 +221,8 @@ export default function RecentAssessments() {
                 <td
                   colSpan={5}
                   style={{
-                    padding: "24px 12px",
+                    padding: "24px",
                     textAlign: "center",
-                    fontWeight: 400,
                     color: "red",
                   }}
                 >
@@ -228,9 +234,8 @@ export default function RecentAssessments() {
                 <td
                   colSpan={5}
                   style={{
-                    padding: "24px 12px",
+                    padding: "24px",
                     textAlign: "center",
-                    fontWeight: 400,
                     color: "#6B7280",
                   }}
                 >
@@ -253,15 +258,14 @@ export default function RecentAssessments() {
                     cursor: "pointer",
                   }}
                 >
-                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.nhiNumber}</td>
-                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.patientName}</td>
-                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.date}</td>
-                  <td style={{ padding: "14px 10px", fontWeight: 400 }}>{row.versionNumber}</td>
+                  <td style={{ padding: "14px 10px" }}>{row.nhiNumber}</td>
+                  <td style={{ padding: "14px 10px" }}>{row.patientName}</td>
+                  <td style={{ padding: "14px 10px" }}>{row.date}</td>
+                  <td style={{ padding: "14px 10px" }}>{row.versionNumber}</td>
                   <td
                     style={{
                       padding: "14px 10px",
                       color: getStatusColor(row.status),
-                      fontWeight: 400,
                     }}
                   >
                     {row.status}
