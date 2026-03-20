@@ -8,12 +8,22 @@ import { supabase } from "@/lib/supabaseClient";
 type FormData = {
   firstName: string;
   lastName: string;
+  preferredName: string;
+  prefix: string;
   dateOfBirth: string;
   ethnicity: string;
   gender: string;
+  nzCitizenshipStatus: string;
+  placeOfBirth: string;
   phoneNumber: string;
+  homePhoneNumber: string;
+  emailAddress: string;
   nhiNumber: string;
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  suburb: string;
+  postalCode: string;
   dateOfInjury: string;
   injuryCause: string;
   notes: string;
@@ -34,26 +44,48 @@ function formatDisplayDate(dateString: string) {
 }
 
 async function getNextId(tableName: string, idColumn: string) {
-    const { data, error } = await supabase
-      .from(tableName)
-      .select(idColumn)
-      .order(idColumn, { ascending: false })
-      .limit(1)
-      .maybeSingle();
-  
-    if (error) {
-      throw new Error(`Could not determine next ${idColumn} for ${tableName}: ${error.message}`);
-    }
-  
-    const row = data as Record<string, unknown> | null;
-    const value = row?.[idColumn];
-  
-    if (typeof value !== "number") {
-      return 1;
-    }
-  
-    return value + 1;
+  const { data, error } = await supabase
+    .from(tableName)
+    .select(idColumn)
+    .order(idColumn, { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Could not determine next ${idColumn} for ${tableName}: ${error.message}`);
   }
+
+  const row = data as Record<string, unknown> | null;
+  const value = row?.[idColumn];
+
+  if (typeof value !== "number") {
+    return 1;
+  }
+
+  return value + 1;
+}
+
+async function generateRandomPatientId() {
+  for (let i = 0; i < 20; i++) {
+    const randomId = Math.floor(100000 + Math.random() * 900000);
+
+    const { data, error } = await supabase
+      .from("Patient")
+      .select("patient_id")
+      .eq("patient_id", randomId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Could not validate patient_id: ${error.message}`);
+    }
+
+    if (!data) {
+      return randomId;
+    }
+  }
+
+  throw new Error("Could not generate a unique random patient ID.");
+}
 
 export default function ConfirmPatientPage() {
   const searchParams = useSearchParams();
@@ -116,29 +148,39 @@ export default function ConfirmPatientPage() {
 
     try {
       const nowIso = new Date().toISOString();
+      const todayDate = nowIso.split("T")[0];
 
-      const nextPatientId = await getNextId("Patient", "patient_id");
+      const patientId = await generateRandomPatientId();
       const nextNameId = await getNextId("Patient Name", "name_id");
       const nextContactId = await getNextId("Patient Contact", "contact_id");
       const nextAddressId = await getNextId("Patient Address", "address_id");
+      const nextNhiIdentifierId = patientFormData.nhiNumber
+        ? await getNextId("Patient NHI Identifier", "nhi_identifer_id")
+        : null;
 
-      let nextNhiIdentifierId: number | null = null;
-if (patientFormData.nhiNumber) {
-  nextNhiIdentifierId = await getNextId("Patient NHI Identifier", "nhi_identifer_id");
-}
+      const genderValue =
+        patientFormData.gender === "Male"
+          ? "M"
+          : patientFormData.gender === "Female"
+          ? "F"
+          : patientFormData.gender === "Other"
+          ? "O"
+          : null;
+
+      const fhirPatientId = `fhir-patient-${crypto.randomUUID()}`;
 
       const { error: patientInsertError } = await supabase.from("Patient").insert([
         {
-          patient_id: nextPatientId,
+          patient_id: patientId,
           nhi_number: patientFormData.nhiNumber || null,
           date_of_birth: patientFormData.dateOfBirth || null,
-          gender: patientFormData.gender || null,
-          nz_citizenship_status: null,
-          place_of_birth: null,
+          gender: genderValue,
+          nz_citizenship_status: patientFormData.nzCitizenshipStatus || null,
+          place_of_birth: patientFormData.placeOfBirth || null,
           date_of_death: null,
-          created_at: nowIso,
+          created_at: todayDate,
           is_active: true,
-          fhir_patient_id: null,
+          fhir_patient_id: fhirPatientId,
         },
       ]);
 
@@ -147,19 +189,20 @@ if (patientFormData.nhiNumber) {
       }
 
       const { error: patientNameInsertError } = await supabase
-  .from("Patient Name")
-  .insert([
-    {
-      name_id: nextNameId,
-      PATIENTpatient_id: nextPatientId,
-      family_name: patientFormData.lastName || null,
-      given_name: patientFormData.firstName || null,
-      prefix: null,
-      suffix: null,
-      created_at: nowIso,
-      updated_at: nowIso,
-    },
-  ]);
+        .from("Patient Name")
+        .insert([
+          {
+            name_id: nextNameId,
+            PATIENTpatient_id: patientId,
+            family_name: patientFormData.lastName || null,
+            given_name: patientFormData.firstName || null,
+            preferred_name: patientFormData.preferredName || null,
+            prefix: patientFormData.prefix || null,
+            suffix: null,
+            created_at: todayDate,
+            updated_at: todayDate,
+          },
+        ]);
 
       if (patientNameInsertError) {
         throw new Error(`Patient Name insert failed: ${patientNameInsertError.message}`);
@@ -170,12 +213,16 @@ if (patientFormData.nhiNumber) {
         .insert([
           {
             contact_id: nextContactId,
-            PATIENTpatient_id: nextPatientId,
-            email_address: null,
-            home_phone_no: null,
-            mobile_phone_co: patientFormData.phoneNumber || null,
-            created_at: nowIso,
-            updated_at: nowIso,
+            PATIENTpatient_id: patientId,
+            email_address: patientFormData.emailAddress || null,
+            home_phone_no: patientFormData.homePhoneNumber
+              ? Number(patientFormData.homePhoneNumber)
+              : null,
+            mobile_phone_co: patientFormData.phoneNumber
+              ? Number(patientFormData.phoneNumber)
+              : null,
+            created_at: todayDate,
+            updated_at: todayDate,
           },
         ]);
 
@@ -188,16 +235,18 @@ if (patientFormData.nhiNumber) {
         .insert([
           {
             address_id: nextAddressId,
-            PATIENTpatient_id: nextPatientId,
+            PATIENTpatient_id: patientId,
             type: "HOME",
-            line1: patientFormData.address || null,
-            line2: null,
-            city: null,
-            suburb: null,
-            postal_code: null,
+            line1: patientFormData.addressLine1 || null,
+            line2: patientFormData.addressLine2 || null,
+            city: patientFormData.city || null,
+            suburb: patientFormData.suburb || null,
+            postal_code: patientFormData.postalCode
+              ? Number(patientFormData.postalCode)
+              : null,
             country: "NZ",
-            created_at: nowIso,
-            updated_at: nowIso,
+            created_at: todayDate,
+            updated_at: todayDate,
           },
         ]);
 
@@ -210,18 +259,20 @@ if (patientFormData.nhiNumber) {
           .from("Patient NHI Identifier")
           .insert([
             {
-                nhi_identifer_id: nextNhiIdentifierId,
-                PATIENTpatient_id: nextPatientId,
-                nhi_number: patientFormData.nhiNumber,
-                nhi_use: "official",
-                assigned_at: new Date().toISOString().split("T")[0],
-                linked_at: new Date().toISOString().split("T")[0],
-                created_at: nowIso,
-              },
+              nhi_identifer_id: nextNhiIdentifierId,
+              PATIENTpatient_id: patientId,
+              nhi_number: patientFormData.nhiNumber,
+              nhi_use: "official",
+              assigned_at: todayDate,
+              linked_at: todayDate,
+              created_at: nowIso,
+            },
           ]);
 
         if (patientNhiInsertError) {
-          throw new Error(`Patient NHI Identifier insert failed: ${patientNhiInsertError.message}`);
+          throw new Error(
+            `Patient NHI Identifier insert failed: ${patientNhiInsertError.message}`
+          );
         }
       }
 
@@ -306,14 +357,38 @@ if (patientFormData.nhiNumber) {
             <div>Full Name</div>
             <div>{fullName}</div>
 
+            <div>Preferred Name</div>
+            <div>{patientFormData.preferredName || "Not recorded"}</div>
+
+            <div>Prefix</div>
+            <div>{patientFormData.prefix || "Not recorded"}</div>
+
             <div>Date of Birth</div>
             <div>{formatDisplayDate(patientFormData.dateOfBirth)}</div>
 
             <div>Gender</div>
             <div>{patientFormData.gender || "Not recorded"}</div>
 
+            <div>Ethnicity</div>
+            <div>{patientFormData.ethnicity || "Not recorded"}</div>
+
+            <div>NZ Citizenship Status</div>
+            <div>{patientFormData.nzCitizenshipStatus || "Not recorded"}</div>
+
+            <div>Place of Birth</div>
+            <div>{patientFormData.placeOfBirth || "Not recorded"}</div>
+
             <div>NHI Number</div>
             <div>{patientFormData.nhiNumber || "Not yet assigned"}</div>
+
+            <div>Mobile Phone Number</div>
+            <div>{patientFormData.phoneNumber || "Not recorded"}</div>
+
+            <div>Home Phone Number</div>
+            <div>{patientFormData.homePhoneNumber || "Not recorded"}</div>
+
+            <div>Email Address</div>
+            <div>{patientFormData.emailAddress || "Not recorded"}</div>
 
             <div>Admitting Clinician</div>
             <div>Dr. J. Doe</div>
@@ -324,17 +399,23 @@ if (patientFormData.nhiNumber) {
             <div>Date of Admission</div>
             <div>{admissionDate}</div>
 
+            <div>Address Line 1</div>
+            <div>{patientFormData.addressLine1 || "Not recorded"}</div>
+
+            <div>Address Line 2</div>
+            <div>{patientFormData.addressLine2 || "Not recorded"}</div>
+
+            <div>City</div>
+            <div>{patientFormData.city || "Not recorded"}</div>
+
+            <div>Suburb</div>
+            <div>{patientFormData.suburb || "Not recorded"}</div>
+
+            <div>Postal Code</div>
+            <div>{patientFormData.postalCode || "Not recorded"}</div>
+
             <div>Date of Injury</div>
             <div>{formatDisplayDate(patientFormData.dateOfInjury)}</div>
-
-            <div>Ethnicity</div>
-            <div>{patientFormData.ethnicity || "Not recorded"}</div>
-
-            <div>Phone Number</div>
-            <div>{patientFormData.phoneNumber || "Not recorded"}</div>
-
-            <div>Address</div>
-            <div>{patientFormData.address || "Not recorded"}</div>
 
             <div>Injury Cause</div>
             <div>{patientFormData.injuryCause || "Not recorded"}</div>
@@ -380,9 +461,9 @@ if (patientFormData.nhiNumber) {
               style={{ marginTop: "2px" }}
             />
             <span>
-              I confirm that this patient has consented to their clinical data being
-              stored in the ISNCSCI assessment system, in accordance with the New
-              Zealand Health Information Privacy Code 2020.
+              I confirm that this patient has consented to their clinical data being stored
+              in the ISNCSCI assessment system, in accordance with the New Zealand Health
+              Information Privacy Code 2020.
             </span>
           </label>
         </div>

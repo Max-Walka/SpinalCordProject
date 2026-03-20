@@ -9,12 +9,22 @@ import NewPatientActions from "./NewPatientActions";
 export type NewPatientFormData = {
   firstName: string;
   lastName: string;
+  preferredName: string;
+  prefix: string;
   dateOfBirth: string;
   ethnicity: string;
   gender: string;
+  nzCitizenshipStatus: string;
+  placeOfBirth: string;
   phoneNumber: string;
+  homePhoneNumber: string;
+  emailAddress: string;
   nhiNumber: string;
-  address: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  suburb: string;
+  postalCode: string;
   dateOfInjury: string;
   injuryCause: string;
   notes: string;
@@ -23,12 +33,22 @@ export type NewPatientFormData = {
 const initialFormData: NewPatientFormData = {
   firstName: "",
   lastName: "",
+  preferredName: "",
+  prefix: "",
   dateOfBirth: "",
   ethnicity: "",
   gender: "",
+  nzCitizenshipStatus: "",
+  placeOfBirth: "",
   phoneNumber: "",
+  homePhoneNumber: "",
+  emailAddress: "",
   nhiNumber: "",
-  address: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  suburb: "",
+  postalCode: "",
   dateOfInjury: "",
   injuryCause: "",
   notes: "",
@@ -63,7 +83,7 @@ export default function NewPatientForm() {
       style={{
         backgroundColor: "#FFFFFF",
         border: "1px solid #5F6F8C",
-        padding: "0",
+        padding: 0,
         color: "#15284C",
       }}
     >
