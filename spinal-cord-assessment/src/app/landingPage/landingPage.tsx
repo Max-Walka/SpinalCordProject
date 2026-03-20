@@ -3,8 +3,12 @@ import Buttons from "@/components/landing/buttons";
 import RecentAssessments from "@/components/landing/recentAssessments";
 import UpcomingReviews from "@/components/landing/upcoming";
 import Drafts from "@/components/landing/drafts";
+import { getRecentAssessmentsForLanding } from "@/lib/recentAssessmentsLanding";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { rows: recentRows, error: recentError } =
+    await getRecentAssessmentsForLanding();
+
   return (
     <main
       style={{
@@ -69,7 +73,7 @@ export default function LandingPage() {
               overflow: "hidden",
             }}
           >
-            <RecentAssessments />
+            <RecentAssessments initialRows={recentRows} initialError={recentError} />
           </div>
 
           <div

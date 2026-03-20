@@ -1,51 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import type { RecentAssessmentDisplay } from "@/lib/recentAssessmentsLanding";
 
-type AssessmentRow = {
-  assessment_id: number;
-  assessment_date: string;
-  status: string;
-  current_version: number;
-  PATIENTpatient_id: number;
+type Props = {
+  initialRows: RecentAssessmentDisplay[];
+  initialError: string | null;
 };
-
-type PatientRow = {
-  patient_id: number;
-  nhi_number: string;
-};
-
-type PatientNameRow = {
-  PATIENTpatient_id: number;
-  given_name: string;
-  family_name: string;
-};
-
-type RecentAssessmentDisplay = {
-  id: number;
-  patientId: number;
-  nhiNumber: string;
-  patientName: string;
-  date: string;
-  versionNumber: string;
-  status: string;
-};
-
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return dateString;
-  }
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-
-  return `${day}/${month}/${year}`;
-}
 
 function getStatusColor(status: string) {
   switch (status.toUpperCase()) {
@@ -60,96 +21,8 @@ function getStatusColor(status: string) {
   }
 }
 
-export default function RecentAssessments() {
+export default function RecentAssessments({ initialRows, initialError }: Props) {
   const router = useRouter();
-
-  const [rows, setRows] = useState<RecentAssessmentDisplay[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchRecentAssessments() {
-      setLoading(true);
-      setError(null);
-
-      const { data: assessmentData, error: assessmentError } = await supabase
-        .from("Assessment")
-        .select(
-          "assessment_id, assessment_date, status, current_version, PATIENTpatient_id"
-        )
-        .order("assessment_date", { ascending: false })
-        .limit(50);
-
-      if (assessmentError) {
-        setError(`Assessment query failed: ${assessmentError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      const assessments = (assessmentData ?? []) as AssessmentRow[];
-
-      if (assessments.length === 0) {
-        setRows([]);
-        setLoading(false);
-        return;
-      }
-
-      const patientIds = [...new Set(assessments.map((a) => a.PATIENTpatient_id))];
-
-      const { data: patientData, error: patientError } = await supabase
-        .from("Patient")
-        .select("patient_id, nhi_number")
-        .in("patient_id", patientIds);
-
-      if (patientError) {
-        setError(`Patient query failed: ${patientError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      const { data: patientNameData, error: patientNameError } = await supabase
-        .from("Patient Name")
-        .select("PATIENTpatient_id, given_name, family_name")
-        .in("PATIENTpatient_id", patientIds);
-
-      if (patientNameError) {
-        setError(`Patient Name query failed: ${patientNameError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      const patients = (patientData ?? []) as PatientRow[];
-      const patientNames = (patientNameData ?? []) as PatientNameRow[];
-
-      const patientMap = new Map<number, PatientRow>();
-      patients.forEach((p) => patientMap.set(p.patient_id, p));
-
-      const nameMap = new Map<number, PatientNameRow>();
-      patientNames.forEach((n) => nameMap.set(n.PATIENTpatient_id, n));
-
-      const mappedRows: RecentAssessmentDisplay[] = assessments.map((a) => {
-        const patient = patientMap.get(a.PATIENTpatient_id);
-        const name = nameMap.get(a.PATIENTpatient_id);
-
-        return {
-          id: a.assessment_id,
-          patientId: a.PATIENTpatient_id,
-          nhiNumber: patient?.nhi_number ?? "N/A",
-          patientName: name
-            ? `${name.given_name} ${name.family_name}`
-            : `Patient #${a.PATIENTpatient_id}`,
-          date: formatDate(a.assessment_date),
-          versionNumber: `v${a.current_version}`,
-          status: a.status,
-        };
-      });
-
-      setRows(mappedRows);
-      setLoading(false);
-    }
-
-    fetchRecentAssessments();
-  }, []);
 
   const headerCellStyle: React.CSSProperties = {
     padding: "14px 12px",
@@ -222,26 +95,20 @@ export default function RecentAssessments() {
           </thead>
 
           <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#6B7280" }}>
-                  Loading...
-                </td>
-              </tr>
-            ) : error ? (
+            {initialError ? (
               <tr>
                 <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "red" }}>
-                  {error}
+                  {initialError}
                 </td>
               </tr>
-            ) : rows.length === 0 ? (
+            ) : initialRows.length === 0 ? (
               <tr>
                 <td colSpan={5} style={{ padding: "24px", textAlign: "center", color: "#6B7280" }}>
                   No recent assessments to display.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              initialRows.map((row) => (
                 <tr
                   key={row.id}
                   onClick={() => router.push(`/history/${row.patientId}`)}
