@@ -25,7 +25,7 @@ const { data, error } = await supabase
   .maybeSingle();
 
     if (error) {
-      setError("Login failed: " + error.message);
+      setError("Invalid username or password. Please try again.");
       setLoading(false);
       return;
     }
