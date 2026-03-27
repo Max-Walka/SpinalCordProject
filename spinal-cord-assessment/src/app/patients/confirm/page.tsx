@@ -189,20 +189,20 @@ export default function ConfirmPatientPage() {
       }
 
       const { error: patientNameInsertError } = await supabase
-        .from("Patient Name")
-        .insert([
-          {
-            name_id: nextNameId,
-            PATIENTpatient_id: patientId,
-            family_name: patientFormData.lastName || null,
-            given_name: patientFormData.firstName || null,
-            preferred_name: patientFormData.preferredName || null,
-            prefix: patientFormData.prefix || null,
-            suffix: null,
-            created_at: todayDate,
-            updated_at: todayDate,
-          },
-        ]);
+  .from("Patient Name")
+  .insert([
+    {
+      name_id: nextNameId,
+      PATIENTpatient_id: patientId,
+      family_name: patientFormData.lastName || null,
+      given_name: patientFormData.firstName || null,
+      preffered_name: patientFormData.preferredName || null,
+      prefix: patientFormData.prefix || null,
+      suffix: null,
+      created_at: todayDate,
+      updated_at: todayDate,
+    },
+  ]);
 
       if (patientNameInsertError) {
         throw new Error(`Patient Name insert failed: ${patientNameInsertError.message}`);

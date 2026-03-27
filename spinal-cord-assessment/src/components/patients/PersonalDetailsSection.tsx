@@ -89,9 +89,9 @@ const ethnicityOptions = [
   "Lebanese",
   "Malaysian",
   "Malaysian Chinese",
-  "Māori",
   "Mexican",
   "Middle Eastern nfd",
+  "Māori",
   "Nepalese",
   "New Zealander",
   "New Zealand European",
@@ -99,11 +99,11 @@ const ethnicityOptions = [
   "Nigerian",
   "Niuean",
   "Norwegian",
-  "Other ethnicity nec",
   "Other South African",
   "Other Zimbabwean",
-  "Pakistani",
+  "Other ethnicity nec",
   "Pacific Peoples nfd",
+  "Pakistani",
   "Papua New Guinean",
   "Polish",
   "Portuguese",
@@ -122,8 +122,8 @@ const ethnicityOptions = [
   "Southeast Asian nfd",
   "Southeast Asian nec",
   "Spanish",
-  "Sri Lankan nfd",
   "Sri Lankan Tamil",
+  "Sri Lankan nfd",
   "Swedish",
   "Swiss",
   "Tahitian",
@@ -184,9 +184,27 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           gap: "18px 28px",
         }}
       >
+        {/* NHI NUMBER */}
+        <div style={{ gridColumn: "span 1" }}>
+          <label htmlFor="nhiNumber" style={labelStyle}>
+            NHI NUMBER *
+          </label>
+          <input
+            id="nhiNumber"
+            name="nhiNumber"
+            value={formData.nhiNumber}
+            onChange={onChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div></div>
+        <div></div>
+
+        {/* PREFIX / FIRST / SURNAME */}
         <div>
           <label htmlFor="prefix" style={labelStyle}>
-            PREFIX
+            PREFIX *
           </label>
           <input
             id="prefix"
@@ -212,7 +230,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="lastName" style={labelStyle}>
-            LAST NAME *
+            SURNAME *
           </label>
           <input
             id="lastName"
@@ -223,7 +241,8 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           />
         </div>
 
-        <div>
+        {/* PREFERRED NAME */}
+        <div style={{ gridColumn: "span 1" }}>
           <label htmlFor="preferredName" style={labelStyle}>
             PREFERRED NAME
           </label>
@@ -236,6 +255,10 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           />
         </div>
 
+        <div></div>
+        <div></div>
+
+        {/* DOB / GENDER / ETHNICITY */}
         <div>
           <label htmlFor="dateOfBirth" style={labelStyle}>
             DATE OF BIRTH *
@@ -270,7 +293,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="ethnicity" style={labelStyle}>
-            ETHNICITY
+            ETHNICITY *
           </label>
           <select
             id="ethnicity"
@@ -288,22 +311,10 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           </select>
         </div>
 
-        <div>
-          <label htmlFor="nzCitizenshipStatus" style={labelStyle}>
-            NZ CITIZENSHIP STATUS
-          </label>
-          <input
-            id="nzCitizenshipStatus"
-            name="nzCitizenshipStatus"
-            value={formData.nzCitizenshipStatus}
-            onChange={onChange}
-            style={inputStyle}
-          />
-        </div>
-
+        {/* PLACE OF BIRTH / NZ CITIZENSHIP STATUS */}
         <div>
           <label htmlFor="placeOfBirth" style={labelStyle}>
-            PLACE OF BIRTH
+            PLACE OF BIRTH *
           </label>
           <input
             id="placeOfBirth"
@@ -315,8 +326,24 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
         </div>
 
         <div>
+          <label htmlFor="nzCitizenshipStatus" style={labelStyle}>
+            NZ CITIZENSHIP STATUS *
+          </label>
+          <input
+            id="nzCitizenshipStatus"
+            name="nzCitizenshipStatus"
+            value={formData.nzCitizenshipStatus}
+            onChange={onChange}
+            style={inputStyle}
+          />
+        </div>
+
+        <div></div>
+
+        {/* CONTACTS */}
+        <div>
           <label htmlFor="phoneNumber" style={labelStyle}>
-            MOBILE PHONE NUMBER
+            MOBILE PHONE *
           </label>
           <input
             id="phoneNumber"
@@ -329,7 +356,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="homePhoneNumber" style={labelStyle}>
-            HOME PHONE NUMBER
+            HOME PHONE *
           </label>
           <input
             id="homePhoneNumber"
@@ -342,7 +369,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="emailAddress" style={labelStyle}>
-            EMAIL ADDRESS
+            EMAIL ADDRESS *
           </label>
           <input
             id="emailAddress"
@@ -354,22 +381,10 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           />
         </div>
 
-        <div>
-          <label htmlFor="nhiNumber" style={labelStyle}>
-            NHI NUMBER *
-          </label>
-          <input
-            id="nhiNumber"
-            name="nhiNumber"
-            value={formData.nhiNumber}
-            onChange={onChange}
-            style={inputStyle}
-          />
-        </div>
-
+        {/* ADDRESS LINE 1 / ADDRESS LINE 2 */}
         <div style={{ gridColumn: "span 2" }}>
           <label htmlFor="addressLine1" style={labelStyle}>
-            ADDRESS LINE 1
+            ADDRESS LINE 1 *
           </label>
           <input
             id="addressLine1"
@@ -379,6 +394,8 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
             style={inputStyle}
           />
         </div>
+
+        <div></div>
 
         <div style={{ gridColumn: "span 2" }}>
           <label htmlFor="addressLine2" style={labelStyle}>
@@ -393,9 +410,12 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
           />
         </div>
 
+        <div></div>
+
+        {/* CITY / SUBURB / POSTCODE */}
         <div>
           <label htmlFor="city" style={labelStyle}>
-            CITY
+            CITY *
           </label>
           <input
             id="city"
@@ -408,7 +428,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="suburb" style={labelStyle}>
-            SUBURB
+            SUBURB *
           </label>
           <input
             id="suburb"
@@ -421,7 +441,7 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         <div>
           <label htmlFor="postalCode" style={labelStyle}>
-            POSTAL CODE
+            POSTCODE *
           </label>
           <input
             id="postalCode"
