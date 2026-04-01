@@ -66,8 +66,8 @@ export default function Header() {
 
   // Sign out function
   function handleSignOut() {
-    localStorage.removeItem("staffInfo"); // clear logged-in user
-    router.push("/"); // redirect to login page
+    localStorage.removeItem("staffInfo");
+    router.push("/login");
   }
 
   return (

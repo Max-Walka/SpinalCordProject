@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { hasValidStaffSession } from "@/lib/staffSession";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (hasValidStaffSession()) {
+      router.replace("/");
+    }
+  }, [router]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
