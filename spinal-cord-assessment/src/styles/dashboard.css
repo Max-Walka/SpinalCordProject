@@ -353,6 +353,43 @@
   outline-offset: 2px;
 }
 
+/* ── Patient search page animations ──────────────────────────────────── */
+
+@keyframes search-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-result-slide-in {
+  animation: search-slide-in 0.3s ease-out;
+}
+
+@keyframes search-spin {
+  to { transform: rotate(360deg); }
+}
+
+.search-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: search-spin 0.6s linear infinite;
+}
+
+/* NHI input: monospace for value, site default for placeholder */
+.patient-lookup-nhi-input::placeholder {
+  font-family: 'Fira Sans', sans-serif;
+  letter-spacing: normal;
+}
+
 /* ── Responsive layout ────────────────────────────────────────────────── */
 
 @media (max-width: 1024px) {
