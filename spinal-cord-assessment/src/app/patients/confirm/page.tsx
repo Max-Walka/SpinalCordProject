@@ -508,7 +508,10 @@ export default function ConfirmPatientPage() {
         >
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              const encoded = encodeURIComponent(JSON.stringify(patientFormData));
+              router.push(`/patients/new?data=${encoded}`);
+            }}
             disabled={saving}
             style={{
               minWidth: "160px",

@@ -26,6 +26,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
   outline: "none",
 };
+const PREFIX_OPTIONS = ["Mr", "Mrs", "Ms", "Miss", "Mx", "Dr", "Prof"];
 
 const ethnicityOptions = [
   "Afghani",
@@ -203,17 +204,24 @@ export default function PersonalDetailsSection({ formData, onChange }: Props) {
 
         {/* PREFIX / FIRST / SURNAME */}
         <div>
-          <label htmlFor="prefix" style={labelStyle}>
-            PREFIX *
-          </label>
-          <input
-            id="prefix"
-            name="prefix"
-            value={formData.prefix}
-            onChange={onChange}
-            style={inputStyle}
-          />
-        </div>
+  <label htmlFor="prefix" style={labelStyle}>
+    PREFIX *
+  </label>
+  <select
+    id="prefix"
+    name="prefix"
+    value={formData.prefix}
+    onChange={onChange}
+    style={inputStyle}
+  >
+    <option value="">Select prefix</option>
+    {PREFIX_OPTIONS.map((p) => (
+      <option key={p} value={p}>
+        {p}
+      </option>
+    ))}
+  </select>
+</div>
 
         <div>
           <label htmlFor="firstName" style={labelStyle}>
