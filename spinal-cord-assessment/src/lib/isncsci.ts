@@ -1,10 +1,12 @@
-import { ISNCSCI, Exam } from "isncsci";
+import { Exam } from "../types/exam";
 
 export function runAssessment(exam: Exam) {
-  const result = new ISNCSCI(exam);
-
+  // TEMP mock logic
   return {
-    classification: result.classification,
-    totals: result.totals,
+    classification: "AIS A",
+    totals: {
+      motor: 0,
+      sensory: 0
+    }
   };
 }

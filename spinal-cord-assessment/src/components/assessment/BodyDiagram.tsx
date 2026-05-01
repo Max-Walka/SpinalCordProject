@@ -1,97 +1,107 @@
 "use client";
 
-import { Exam } from "isncsci";
+import { Exam } from "@/types/exam";
 
 type Props = {
   exam: Exam;
-  setExam: React.Dispatch<React.SetStateAction<Exam>>;
 };
 
-const levels = [
-  "C2","C3","C4","C5","C6","C7","C8",
-  "T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12",
-  "L1","L2","L3","L4","L5",
-  "S1","S2","S3","S4_5"
-];
+export default function BodyDiagram({ exam }: Props) {
+  const getColor = (level: string) => {
+    const values = [
+      exam.right.lightTouch[level],
+      exam.right.pinPrick[level],
+      exam.left.lightTouch[level],
+      exam.left.pinPrick[level],
+    ];
 
-// vertical spacing
-const getY = (index: number) => 40 + index * 10;
-
-// color mapping
-const getColor = (value: string) => {
-  if (value === "2") return "#4CAF50"; // green
-  if (value === "1") return "#FFC107"; // yellow
-  if (value === "0") return "#F44336"; // red
-  return "#ccc"; // NT
-};
-
-// cycle values
-const nextValue = (current: string) => {
-  if (current === "0") return "1";
-  if (current === "1") return "2";
-  if (current === "2") return "0";
-  return "0";
-};
-
-export default function BodyDiagram({ exam, setExam }: Props) {
-
-  const handleClick = (side: "left" | "right", level: string) => {
-    const current = (exam[side].lightTouch as any)[level];
-
-    setExam(prev => ({
-      ...prev,
-      [side]: {
-        ...prev[side],
-        lightTouch: {
-          ...prev[side].lightTouch,
-          [level]: nextValue(current)
-        }
-      }
-    }));
+    if (values.includes("2")) return "rgba(126,217,87,0.5)";
+    if (values.includes("1")) return "rgba(255,224,102,0.5)";
+    return "transparent";
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: "center", margin: "20px 0" }}>
-      <svg width="300" height="450">
+    <div style={{ position: "relative", width: "300px", margin: "0 auto" }}>
+      {/* BASE IMAGE */}
+      <img
+        src="/bodyDiagram.svg"
+        alt="Body Diagram"
+        style={{ width: "100%", display: "block" }}
+      />
 
-        {/* LEFT SIDE */}
-        {levels.map((level, i) => (
-          <g key={"left-" + level}>
-            <circle
-              cx={80}
-              cy={getY(i)}
-              r={6}
-              fill={getColor((exam.left.lightTouch as any)[level])}
-              onClick={() => handleClick("left", level)}
-              style={{ cursor: "pointer" }}
-            />
-            <text x={50} y={getY(i) + 4} fontSize="8">
-              {level}
-            </text>
-          </g>
-        ))}
+      {/* ===== OVERLAY ZONES ===== */}
 
-        {/* BODY CENTER LINE */}
-        <line x1="150" y1="20" x2="150" y2="420" stroke="#999" strokeWidth="2" />
+      {/* C5 shoulders */}
+      <div
+        style={{
+          position: "absolute",
+          top: "18%",
+          left: "15%",
+          width: "70%",
+          height: "8%",
+          background: getColor("C5"),
+        }}
+      />
 
-        {/* RIGHT SIDE */}
-        {levels.map((level, i) => (
-          <g key={"right-" + level}>
-            <circle
-              cx={220}
-              cy={getY(i)}
-              r={6}
-              fill={getColor((exam.right.lightTouch as any)[level])}
-              onClick={() => handleClick("right", level)}
-              style={{ cursor: "pointer" }}
-            />
-            <text x={230} y={getY(i) + 4} fontSize="8">
-              {level}
-            </text>
-          </g>
-        ))}
+      {/* C6 arms */}
+      <div
+        style={{
+          position: "absolute",
+          top: "25%",
+          left: "10%",
+          width: "80%",
+          height: "12%",
+          background: getColor("C6"),
+        }}
+      />
 
-      </svg>
+      {/* T4 chest */}
+      <div
+        style={{
+          position: "absolute",
+          top: "30%",
+          left: "25%",
+          width: "50%",
+          height: "10%",
+          background: getColor("T4"),
+        }}
+      />
+
+      {/* T10 abdomen */}
+      <div
+        style={{
+          position: "absolute",
+          top: "42%",
+          left: "25%",
+          width: "50%",
+          height: "10%",
+          background: getColor("T10"),
+        }}
+      />
+
+      {/* L3 thighs */}
+      <div
+        style={{
+          position: "absolute",
+          top: "55%",
+          left: "30%",
+          width: "40%",
+          height: "12%",
+          background: getColor("L3"),
+        }}
+      />
+
+      {/* S1 feet */}
+      <div
+        style={{
+          position: "absolute",
+          top: "75%",
+          left: "35%",
+          width: "30%",
+          height: "10%",
+          background: getColor("S1"),
+        }}
+      />
     </div>
   );
 }
