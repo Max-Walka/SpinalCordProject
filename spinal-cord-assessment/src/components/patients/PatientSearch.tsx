@@ -25,8 +25,6 @@ function formatDate(dateString: string) {
 
 export default function PatientSearch() {
   const [nhi, setNhi] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dob, setDob] = useState("");
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,64 +36,29 @@ export default function PatientSearch() {
     setPatient(null);
 
     try {
-      let patientRow = null;
-
-      // 🔹 SEARCH BY NHI
-      if (nhi) {
-        const { data, error } = await supabase
-          .from("Patient")
-          .select("*")
-          .eq("nhi_number", nhi)
-          .limit(1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) {
-          setError("No patient found");
-          setLoading(false);
-          return;
-        }
-
-        patientRow = data[0];
-      }
-
-      // 🔹 SEARCH BY NAME + DOB
-      else if (lastName && dob) {
-        // Step 1: find name match
-        const { data: nameMatches, error: nameError } = await supabase
-          .from("Patient Name")
-          .select("*")
-          .ilike("family_name", lastName);
-
-        if (nameError) throw nameError;
-        if (!nameMatches || nameMatches.length === 0) {
-          setError("No patient found");
-          setLoading(false);
-          return;
-        }
-
-        const ids = nameMatches.map((n) => n.PATIENTpatient_id);
-
-        // Step 2: match DOB
-        const { data: patients, error: patientError } = await supabase
-          .from("Patient")
-          .select("*")
-          .in("patient_id", ids)
-          .eq("date_of_birth", dob)
-          .limit(1);
-
-        if (patientError) throw patientError;
-        if (!patients || patients.length === 0) {
-          setError("No patient found");
-          setLoading(false);
-          return;
-        }
-
-        patientRow = patients[0];
-      } else {
-        setError("Enter NHI OR Last Name + DOB");
+      // ✅ REQUIRE NHI
+      if (!nhi) {
+        setError("Enter an NHI number");
         setLoading(false);
         return;
       }
+
+      // 🔹 SEARCH BY NHI ONLY
+      const { data, error } = await supabase
+        .from("Patient")
+        .select("*")
+        .eq("nhi_number", nhi.toUpperCase())
+        .limit(1);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        setError("No patient found");
+        setLoading(false);
+        return;
+      }
+
+      const patientRow = data[0];
 
       // 🔹 GET NAME
       const { data: nameData } = await supabase
@@ -154,7 +117,7 @@ export default function PatientSearch() {
       >
         <h2 style={{ marginBottom: "16px" }}>Patient Lookup</h2>
 
-        {/* NHI */}
+        {/* NHI Input */}
         <div style={{ marginBottom: "16px" }}>
           <label>NHI Number</label>
           <input
@@ -163,36 +126,6 @@ export default function PatientSearch() {
             placeholder="e.g. ABC1234"
             style={{
               width: "100%",
-              padding: "10px",
-              border: "1px solid #D6D6D6",
-            }}
-          />
-        </div>
-
-        {/* Divider */}
-        <div style={{ textAlign: "center", margin: "16px 0", color: "#888" }}>
-          Or search by
-        </div>
-
-        {/* Name + DOB */}
-        <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
-          <input
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Last Name"
-            style={{
-              flex: 1,
-              padding: "10px",
-              border: "1px solid #D6D6D6",
-            }}
-          />
-
-          <input
-            type="date"
-            value={dob}
-            onChange={(e) => setDob(e.target.value)}
-            style={{
-              flex: 1,
               padding: "10px",
               border: "1px solid #D6D6D6",
             }}
@@ -211,7 +144,7 @@ export default function PatientSearch() {
             cursor: "pointer",
           }}
         >
-          {loading ? "Searching..." : "Search NHI FHIR"}
+          {loading ? "Searching..." : "Search Patient"}
         </button>
 
         {error && (
