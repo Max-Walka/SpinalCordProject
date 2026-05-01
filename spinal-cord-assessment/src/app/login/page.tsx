@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,59 +15,35 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    // Get staff_id as well
-    const { data, error } = await supabase
-      .from("Staff Credentials")
-      .select("username, password_hash, STAFFstaff_id")
-      .eq("username", username)
-      .maybeSingle();
-
-    if (error) {
-      setError("Invalid username or password. Please try again.");
+  
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
+    });
+  
+    const result = await response.json();
+  
+    if (!response.ok) {
+      setError(result.error || "Invalid username or password");
       setLoading(false);
       return;
     }
-
-    if (!data) {
-      setError("Invalid username or password");
-      setLoading(false);
-      return;
-    }
-
-    if (data.password_hash !== password) {
-      setError("Invalid username or password");
-      setLoading(false);
-      return;
-    }
-
-    // Get staff name immediately
-    const { data: nameData } = await supabase
-      .from("Staff Name")
-      .select("prefix, given_name, preferred_name, family_name")
-      .eq("STAFFstaff_id", data.STAFFstaff_id)
-      .maybeSingle();
-
-    const firstName =
-      nameData?.preferred_name || nameData?.given_name || "";
-
-    const fullName = [
-      nameData?.prefix,
-      firstName,
-      nameData?.family_name,
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    // Store EVERYTHING
+  
     localStorage.setItem(
       "staffInfo",
       JSON.stringify({
-        username,
-        fullName,
+        username: result.username,
+        fullName: result.fullName,
+        staffId: result.staffId,
       })
     );
-
+  
     router.push("/dashboard");
   }
 
