@@ -1,107 +1,90 @@
 "use client";
 
-import { Exam } from "@/types/exam";
+import { useEffect, useRef, useState } from "react";
+import { Exam, Score } from "@/types/exam";
 
 type Props = {
   exam: Exam;
 };
 
-export default function BodyDiagram({ exam }: Props) {
-  const getColor = (level: string) => {
-    const values = [
-      exam.right.lightTouch[level],
-      exam.right.pinPrick[level],
-      exam.left.lightTouch[level],
-      exam.left.pinPrick[level],
-    ];
+const scoreColours: Record<string, string> = {
+  "0": "#E74C3C", // red
+  "1": "#F1C40F", // yellow
+  "2": "#2ECC71", // green
+};
 
-    if (values.includes("2")) return "rgba(126,217,87,0.5)";
-    if (values.includes("1")) return "rgba(255,224,102,0.5)";
-    return "transparent";
-  };
+function levelToSvgLevel(side: "right" | "left", level: string) {
+  return `${side}-${level.toLowerCase().replace("_", "-")}`;
+}
+
+function getWorstScore(a: Score, b: Score): string {
+  const validScores = ["0", "1", "2"];
+
+  if (!validScores.includes(String(a))) return String(b);
+  if (!validScores.includes(String(b))) return String(a);
+
+  return Number(a) <= Number(b) ? String(a) : String(b);
+}
+
+export default function BodyDiagram({ exam }: Props) {
+  const [svgHtml, setSvgHtml] = useState("");
+  const diagramRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    async function loadSvg() {
+      const response = await fetch("/diagram.svg");
+
+      if (!response.ok) {
+        console.error("Could not load /diagram.svg");
+        return;
+      }
+
+      const text = await response.text();
+      setSvgHtml(text);
+    }
+
+    loadSvg();
+  }, []);
+
+  useEffect(() => {
+    if (!svgHtml || !diagramRef.current) return;
+
+    const diagramElement = diagramRef.current;
+
+    (["right", "left"] as const).forEach((side) => {
+      Object.keys(exam[side].lightTouch).forEach((level) => {
+        const svgLevel = levelToSvgLevel(side, level);
+
+        const lightTouchScore = exam[side].lightTouch[level];
+        const pinPrickScore = exam[side].pinPrick[level];
+
+        const finalScore = getWorstScore(lightTouchScore, pinPrickScore);
+        const colour = scoreColours[finalScore] || "#F9F9F9";
+
+        const paths = diagramElement.querySelectorAll(
+          `[data-level="${svgLevel}"]`
+        );
+
+        paths.forEach((path) => {
+          if (path instanceof SVGElement) {
+            path.style.fill = colour;
+            path.style.fillOpacity = "0.65";
+          }
+        });
+      });
+    });
+  }, [exam, svgHtml]);
 
   return (
-    <div style={{ position: "relative", width: "300px", margin: "0 auto" }}>
-      {/* BASE IMAGE */}
-      <img
-        src="/bodyDiagram.svg"
-        alt="Body Diagram"
-        style={{ width: "100%", display: "block" }}
-      />
-
-      {/* ===== OVERLAY ZONES ===== */}
-
-      {/* C5 shoulders */}
-      <div
-        style={{
-          position: "absolute",
-          top: "18%",
-          left: "15%",
-          width: "70%",
-          height: "8%",
-          background: getColor("C5"),
-        }}
-      />
-
-      {/* C6 arms */}
-      <div
-        style={{
-          position: "absolute",
-          top: "25%",
-          left: "10%",
-          width: "80%",
-          height: "12%",
-          background: getColor("C6"),
-        }}
-      />
-
-      {/* T4 chest */}
-      <div
-        style={{
-          position: "absolute",
-          top: "30%",
-          left: "25%",
-          width: "50%",
-          height: "10%",
-          background: getColor("T4"),
-        }}
-      />
-
-      {/* T10 abdomen */}
-      <div
-        style={{
-          position: "absolute",
-          top: "42%",
-          left: "25%",
-          width: "50%",
-          height: "10%",
-          background: getColor("T10"),
-        }}
-      />
-
-      {/* L3 thighs */}
-      <div
-        style={{
-          position: "absolute",
-          top: "55%",
-          left: "30%",
-          width: "40%",
-          height: "12%",
-          background: getColor("L3"),
-        }}
-      />
-
-      {/* S1 feet */}
-      <div
-        style={{
-          position: "absolute",
-          top: "75%",
-          left: "35%",
-          width: "30%",
-          height: "10%",
-          background: getColor("S1"),
-        }}
-      />
-    </div>
+    <div
+      ref={diagramRef}
+      style={{
+        width: "360px",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "flex-start",
+      }}
+      dangerouslySetInnerHTML={{ __html: svgHtml }}
+    />
   );
 }
