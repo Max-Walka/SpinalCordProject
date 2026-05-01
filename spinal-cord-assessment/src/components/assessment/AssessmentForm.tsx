@@ -272,25 +272,35 @@ export default function AssessmentForm() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "250px 1fr 250px",
+          gridTemplateColumns: "420px 250px 1fr 250px",
           gap: "24px",
           alignItems: "start",
         }}
       >
+        <div
+
+style={{
+  position: "sticky",
+  top: "20px",
+  height: "fit-content",
+}}
+>
+<ResultsPanel
+
+  result={result}
+
+  topDown={topDown}
+
+  setTopDown={setTopDown}
+
+  onCalculate={calculate}
+
+/>
+</div>
+        
         <section>
-          <button
-            type="button"
-            onClick={() => setTopDown((prev) => !prev)}
-            style={{
-              marginBottom: "16px",
-              padding: "8px 12px",
-              backgroundColor: topDown ? "#2D3E5E" : "#FFFFFF",
-              color: topDown ? "#FFFFFF" : "#15284C",
-              border: "1px solid #2D3E5E",
-            }}
-          >
-            Top-down propagation: {topDown ? "ON" : "OFF"}
-          </button>
+          
+          
 
           <h2>RIGHT</h2>
 
@@ -344,20 +354,7 @@ export default function AssessmentForm() {
         </section>
 
         <section>
-          <div style={{ textAlign: "right", marginBottom: "16px" }}>
-            <button
-              type="button"
-              onClick={calculate}
-              style={{
-                padding: "8px 14px",
-                backgroundColor: "#2D3E5E",
-                color: "#FFFFFF",
-                border: "none",
-              }}
-            >
-              Calculate
-            </button>
-          </div>
+          
 
           <h2>LEFT</h2>
 
@@ -399,10 +396,6 @@ export default function AssessmentForm() {
             (DAP) Deep anal pressure
           </label>
         </section>
-      </div>
-
-      <div style={{ marginTop: "40px" }}>
-        <ResultsPanel result={result} />
       </div>
     </div>
   );
