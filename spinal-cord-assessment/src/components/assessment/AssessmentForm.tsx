@@ -357,8 +357,9 @@ export default function AssessmentForm() {
       style={{
         backgroundColor: "#F6F4EC",
         color: "#15284C",
-        height: "calc(100vh - 100px)",
-        //overflow: "hidden",
+        minHeight: "calc(100vh - 100px)",
+        overflowX: "auto",
+        overflowY: "auto",
         boxSizing: "border-box",
         marginTop: "-1px",
         padding: 0,
@@ -413,11 +414,10 @@ export default function AssessmentForm() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "340px minmax(0, 1fr)",
+          gridTemplateColumns: "340px minmax(980px, 1fr)",
           gap: "24px",
           alignItems: "stretch",
-          height: "calc(100% - 43px)",
-          minHeight: 0,
+          minHeight: "calc(100vh - 143px)",
           padding: "6px",
           boxSizing: "border-box",
         }}
@@ -443,7 +443,7 @@ export default function AssessmentForm() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "200px minmax(0, 1fr) 200px",
+            gridTemplateColumns: "220px minmax(420px, 1fr) 220px",
             gap: "24px",
             alignItems: "center",
             height: "100%",
