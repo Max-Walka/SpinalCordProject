@@ -1,5 +1,6 @@
 "use client";
 
+import AuthGuard from "@/components/AuthGuard";
 import { useEffect, useState } from "react";
 import Header from "@/components/layout/Header";
 import Buttons from "@/components/landing/buttons";
@@ -74,6 +75,7 @@ export default function DashboardClient() {
   }, [onlyMyPatients, staffId]);
 
   return (
+    <AuthGuard>
     <main
       style={{
         height: "100vh",
@@ -215,5 +217,6 @@ export default function DashboardClient() {
         </div>
       </div>
     </main>
+    </AuthGuard>
   );
 }

@@ -35,7 +35,7 @@ export default function LoginPage() {
       return;
     }
   
-    localStorage.setItem(
+    sessionStorage.setItem(
       "staffInfo",
       JSON.stringify({
         username: result.username,

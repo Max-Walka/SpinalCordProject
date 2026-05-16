@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { supabase } from "@/lib/supabaseClient";
+import AuthGuard from "@/components/AuthGuard";
 
 type FormData = {
   firstName: string;
@@ -323,6 +324,7 @@ if (patientInsertError) {
   }
 
   return (
+    <AuthGuard>
     <main
       style={{
         minHeight: "100vh",
@@ -605,5 +607,6 @@ if (patientInsertError) {
         </div>
       </div>
     </main>
+    </AuthGuard>
   );
 }

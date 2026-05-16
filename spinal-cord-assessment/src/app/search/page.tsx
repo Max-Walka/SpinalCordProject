@@ -1,8 +1,11 @@
 import PatientSearch from "@/components/patients/PatientSearch";
 import Header from "@/components/layout/Header";
+import AuthGuard from "@/components/AuthGuard";
 
 export default function Page() {
+  
   return (
+    <AuthGuard>
     <main
       style={{
         minHeight: "100vh",
@@ -14,5 +17,6 @@ export default function Page() {
       <Header />
       <PatientSearch />
     </main>
+    </AuthGuard>
   );
 }

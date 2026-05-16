@@ -8,7 +8,7 @@ export type StaffInfo = {
     if (typeof window === "undefined") return null;
   
     try {
-      const staffInfo = localStorage.getItem("staffInfo");
+      const staffInfo = sessionStorage.getItem("staffInfo");
       if (!staffInfo) return null;
   
       return JSON.parse(staffInfo) as StaffInfo;
@@ -18,5 +18,5 @@ export type StaffInfo = {
   }
   
   export function logoutStaff() {
-    localStorage.removeItem("staffInfo");
+    sessionStorage.removeItem("staffInfo");
   }

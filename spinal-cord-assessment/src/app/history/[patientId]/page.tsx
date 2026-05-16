@@ -2,7 +2,7 @@ import Header from "@/components/layout/Header";
 import { supabase } from "@/lib/supabaseClient";
 import AssessmentHistoryPanel from "./AssessmentHistoryPanel";
 import type { AssessmentDisplay } from "./AssessmentHistoryPanel";
-
+import AuthGuard from "@/components/AuthGuard";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -291,6 +291,7 @@ export default async function Page({ params }: Props) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <AuthGuard>
     <div style={{
       height: "100vh",
       overflow: "hidden",
@@ -376,5 +377,6 @@ export default async function Page({ params }: Props) {
 
       </div>
     </div>
+    </AuthGuard>
   );
 }

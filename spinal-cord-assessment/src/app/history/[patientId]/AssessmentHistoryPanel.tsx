@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import AuthGuard from "@/components/AuthGuard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,6 +215,7 @@ export default function AssessmentHistoryPanel({
   };
 
   return (
+    <AuthGuard>
     <div style={{ minWidth: 0 }}>
       <div
         style={{
@@ -596,5 +598,6 @@ export default function AssessmentHistoryPanel({
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }
