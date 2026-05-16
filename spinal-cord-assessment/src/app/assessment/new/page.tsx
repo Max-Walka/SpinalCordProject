@@ -1,5 +1,4 @@
-"use client";
-
+import { Suspense } from "react";
 import Header from "@/components/layout/Header";
 import AssessmentForm from "@/components/assessment/AssessmentForm";
 
@@ -8,9 +7,9 @@ export default function AssessmentPage() {
     <div>
       <Header />
 
-      <div style={{ padding: "20px" }}>
+      <Suspense fallback={<div>Loading...</div>}>
         <AssessmentForm />
-      </div>
+      </Suspense>
     </div>
   );
 }
