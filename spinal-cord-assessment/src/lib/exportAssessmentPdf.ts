@@ -1,17 +1,48 @@
 import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 import { getLoggedInStaff } from "@/lib/auth";
 
-
 const LEVELS = [
-  "C2", "C3", "C4", "C5", "C6", "C7", "C8", "T1",
-  "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9",
-  "T10", "T11", "T12", "L1", "L2", "L3", "L4", "L5",
-  "S1", "S2", "S3", "S4_5",
+  "C2",
+  "C3",
+  "C4",
+  "C5",
+  "C6",
+  "C7",
+  "C8",
+  "T1",
+  "T2",
+  "T3",
+  "T4",
+  "T5",
+  "T6",
+  "T7",
+  "T8",
+  "T9",
+  "T10",
+  "T11",
+  "T12",
+  "L1",
+  "L2",
+  "L3",
+  "L4",
+  "L5",
+  "S1",
+  "S2",
+  "S3",
+  "S4_5",
 ];
 
 const MOTOR_LEVELS = [
-  "C5", "C6", "C7", "C8", "T1",
-  "L2", "L3", "L4", "L5", "S1",
+  "C5",
+  "C6",
+  "C7",
+  "C8",
+  "T1",
+  "L2",
+  "L3",
+  "L4",
+  "L5",
+  "S1",
 ];
 
 const SHOW_DEBUG_GRID = false;
@@ -29,9 +60,11 @@ function get(obj: any, paths: string[]) {
 }
 
 function downloadPdf(bytes: Uint8Array, filename: string) {
-  const blob = new Blob([bytes.buffer.slice(0) as ArrayBuffer], {
-    type: "application/pdf",
-  });
+  const arrayBuffer = new ArrayBuffer(bytes.byteLength);
+  const uint8Array = new Uint8Array(arrayBuffer);
+  uint8Array.set(bytes);
+
+  const blob = new Blob([arrayBuffer], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
@@ -133,7 +166,9 @@ export async function exportAssessmentPdf({
   }
 
   const patientName = patient
-    ? `${patient.name?.family_name ?? ""}, ${patient.name?.given_name ?? ""}`.trim()
+    ? `${patient.name?.family_name ?? ""}, ${
+        patient.name?.given_name ?? ""
+      }`.trim()
     : "";
 
   const c = result?.classification ?? {};
@@ -141,9 +176,9 @@ export async function exportAssessmentPdf({
   const examDate = new Date().toLocaleDateString("en-NZ");
 
   // Header fields
-  text(patientName, 442, 585, 8, undefined, false);
-  text(examDate, 660, 585, 8, undefined, false);
-  text(examinerName, 450, 565, 8, undefined, false);
+  text(patientName, 442, 585, 8, true, false);
+  text(examDate, 660, 585, 8, true, false);
+  text(examinerName, 450, 565, 8, true, false);
 
   // Main score grid
   const startY = 500;
@@ -205,7 +240,10 @@ export async function exportAssessmentPdf({
 
   // Classification section
   text(
-    get(c, ["neurologicalLevel.sensoryRight", "neurologicalLevels.sensoryRight"]),
+    get(c, [
+      "neurologicalLevel.sensoryRight",
+      "neurologicalLevels.sensoryRight",
+    ]),
     172,
     50,
     7
@@ -234,19 +272,9 @@ export async function exportAssessmentPdf({
 
   text(get(c, ["neurologicalLevelOfInjury"]), 330, 46, 8);
 
-  text(
-    get(c, ["completeOrIncomplete", "injuryComplete"]),
-    528,
-    55,
-    8
-  );
+  text(get(c, ["completeOrIncomplete", "injuryComplete"]), 528, 55, 8);
 
-  text(
-    get(c, ["ASIAImpairmentScale", "asiaImpairmentScale"]),
-    528,
-    37,
-    8
-  );
+  text(get(c, ["ASIAImpairmentScale", "asiaImpairmentScale"]), 528, 37, 8);
 
   // Zone of partial preservation
   text(
