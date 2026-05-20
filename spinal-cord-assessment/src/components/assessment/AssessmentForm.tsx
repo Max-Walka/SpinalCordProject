@@ -1,5 +1,8 @@
 "use client";
 
+import { exportAssessmentPdf } from "@/lib/exportAssessmentPdf";
+import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ISNCSCI, Exam as ISNCSCIExam } from "isncsci";
@@ -173,22 +176,16 @@ function sumMotorBlock(
 
 function toISNCSCIExam(exam: UiExam): ISNCSCIExam {
   const motor = (side: Side) =>
-    MOTOR_LEVELS.reduce(
-      (acc, level) => {
-        acc[level] = exam[side].motor[level] || "NT";
-        return acc;
-      },
-      {} as Record<string, string>
-    );
+    MOTOR_LEVELS.reduce((acc, level) => {
+      acc[level] = exam[side].motor[level] || "NT";
+      return acc;
+    }, {} as Record<string, string>);
 
   const sensory = (side: Side, type: "lightTouch" | "pinPrick") =>
-    LEVELS.reduce(
-      (acc, level) => {
-        acc[level] = exam[side][type][level] || "NT";
-        return acc;
-      },
-      {} as Record<string, string>
-    );
+    LEVELS.reduce((acc, level) => {
+      acc[level] = exam[side][type][level] || "NT";
+      return acc;
+    }, {} as Record<string, string>);
 
   const fallback = "C2";
 
@@ -196,15 +193,15 @@ function toISNCSCIExam(exam: UiExam): ISNCSCIExam {
     voluntaryAnalContraction: exam.voluntaryAnalContraction || "NT",
     deepAnalPressure: exam.deepAnalPressure || "NT",
     right: {
-      lowestNonKeyMuscleWithMotorFunction:
-        (exam.right.lowestNonKeyMuscleWithMotorFunction || fallback) as never,
+      lowestNonKeyMuscleWithMotorFunction: (exam.right
+        .lowestNonKeyMuscleWithMotorFunction || fallback) as never,
       motor: motor("right") as never,
       lightTouch: sensory("right", "lightTouch") as never,
       pinPrick: sensory("right", "pinPrick") as never,
     },
     left: {
-      lowestNonKeyMuscleWithMotorFunction:
-        (exam.left.lowestNonKeyMuscleWithMotorFunction || fallback) as never,
+      lowestNonKeyMuscleWithMotorFunction: (exam.left
+        .lowestNonKeyMuscleWithMotorFunction || fallback) as never,
       motor: motor("left") as never,
       lightTouch: sensory("left", "lightTouch") as never,
       pinPrick: sensory("left", "pinPrick") as never,
@@ -218,16 +215,56 @@ type AssessmentFormProps = {
 
 export default function AssessmentForm({ patientId }: AssessmentFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nhi = searchParams.get("nhi");
+
+  const [patient, setPatient] = useState<any>(null);
   const [exam, setExam] = useState<UiExam>(defaultExam);
   const [result, setResult] = useState<unknown>(null);
   const [comments, setComments] = useState("");
-  const [linkedAssessmentId, setLinkedAssessmentId] = useState<number | null>(null);
+  const [linkedAssessmentId, setLinkedAssessmentId] = useState<number | null>(
+    null
+  );
   const [saving, setSaving] = useState(false);
   const [saveCompleteOpen, setSaveCompleteOpen] = useState(false);
 
   useEffect(() => {
     setLinkedAssessmentId(null);
   }, [patientId]);
+
+  useEffect(() => {
+    async function loadPatient() {
+      if (!nhi) return;
+
+      const { data: patientData, error: patientError } = await supabase
+        .from("Patient")
+        .select("*")
+        .eq("nhi_number", nhi)
+        .single();
+
+      if (patientError || !patientData) {
+        console.error("Could not load patient:", patientError);
+        return;
+      }
+
+      const { data: nameData, error: nameError } = await supabase
+        .from("Patient Name")
+        .select("*")
+        .eq("PATIENTpatient_id", patientData.patient_id)
+        .single();
+
+      if (nameError) {
+        console.error("Could not load patient name:", nameError);
+      }
+
+      setPatient({
+        ...patientData,
+        name: nameData,
+      });
+    }
+
+    loadPatient();
+  }, [nhi]);
 
   useEffect(() => {
     if (!saveCompleteOpen) return;
@@ -658,381 +695,381 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
           </div>
         </div>
       ) : null}
-    <div
-      style={{
-        flex: 1,
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) minmax(340px, 440px)",
-        minHeight: 0,
-        overflow: "hidden",
-        backgroundColor: "#F6F4EC",
-      }}
-    >
       <div
         style={{
-          overflow: "auto",
-          padding: "20px 24px 28px",
-          boxSizing: "border-box",
+          flex: 1,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(340px, 440px)",
+          minHeight: 0,
+          overflow: "hidden",
+          backgroundColor: "#F6F4EC",
         }}
       >
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns:
-              "minmax(0, auto) minmax(340px, 1fr) minmax(0, auto)",
-            gap: "20px",
-            alignItems: "start",
-            justifyContent: "center",
-            maxWidth: "1100px",
-            margin: "0 auto",
+            overflow: "auto",
+            padding: "20px 24px 28px",
+            boxSizing: "border-box",
           }}
         >
-          <section>
-            <h2
-              style={{
-                margin: "0 0 10px",
-                fontSize: "15px",
-                fontWeight: 700,
-                color: NAVY,
-                letterSpacing: "0.06em",
-              }}
-            >
-              RIGHT
-            </h2>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "40px minmax(90px, 1fr) 42px 42px 42px",
-                marginBottom: "6px",
-                gap: "6px",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: NAVY,
-                textAlign: "center",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              <span />
-              <span style={{ textAlign: "left" }}>Key muscle</span>
-              <span>M</span>
-              <span>LT</span>
-              <span>PP</span>
-            </div>
-
-            {renderRightRows()}
-
-            <div style={{ marginTop: "16px" }}>
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 6,
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: NAVY,
-                }}
-              >
-                Voluntary anal contraction (VAC)
-                <select
-                  value={exam.voluntaryAnalContraction}
-                  onChange={(e) => {
-                    setExam((prev) => ({
-                      ...prev,
-                      voluntaryAnalContraction: e.target
-                        .value as BinaryObservation,
-                    }));
-                    setResult(null);
-                  }}
-                  style={selectStyle}
-                >
-                  <option value=""></option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                  <option value="NT">NT</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section
+          <div
             style={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns:
+                "minmax(0, auto) minmax(340px, 1fr) minmax(0, auto)",
+              gap: "20px",
+              alignItems: "start",
               justifyContent: "center",
-              alignItems: "flex-start",
-              paddingTop: "8px",
+              maxWidth: "1100px",
+              margin: "0 auto",
             }}
           >
-            <BodyDiagram exam={exam as never} />
-          </section>
+            <section>
+              <h2
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: NAVY,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                RIGHT
+              </h2>
 
-          <section>
-            <h2
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "40px minmax(90px, 1fr) 42px 42px 42px",
+                  marginBottom: "6px",
+                  gap: "6px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: NAVY,
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                <span />
+                <span style={{ textAlign: "left" }}>Key muscle</span>
+                <span>M</span>
+                <span>LT</span>
+                <span>PP</span>
+              </div>
+
+              {renderRightRows()}
+
+              <div style={{ marginTop: "16px" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: NAVY,
+                  }}
+                >
+                  Voluntary anal contraction (VAC)
+                  <select
+                    value={exam.voluntaryAnalContraction}
+                    onChange={(e) => {
+                      setExam((prev) => ({
+                        ...prev,
+                        voluntaryAnalContraction: e.target
+                          .value as BinaryObservation,
+                      }));
+                      setResult(null);
+                    }}
+                    style={selectStyle}
+                  >
+                    <option value=""></option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="NT">NT</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section
               style={{
-                margin: "0 0 10px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-start",
+                paddingTop: "8px",
+              }}
+            >
+              <BodyDiagram exam={exam as never} />
+            </section>
+
+            <section>
+              <h2
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: NAVY,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                LEFT
+              </h2>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "42px 42px 42px minmax(90px, 1fr) 40px",
+                  marginBottom: "6px",
+                  gap: "6px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: NAVY,
+                  textAlign: "center",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                <span>LT</span>
+                <span>PP</span>
+                <span>M</span>
+                <span style={{ textAlign: "right" }}>Key muscle</span>
+                <span />
+              </div>
+
+              {renderLeftRows()}
+
+              <div style={{ marginTop: "16px" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: NAVY,
+                  }}
+                >
+                  Deep anal pressure (DAP)
+                  <select
+                    value={exam.deepAnalPressure}
+                    onChange={(e) => {
+                      setExam((prev) => ({
+                        ...prev,
+                        deepAnalPressure: e.target.value as BinaryObservation,
+                      }));
+                      setResult(null);
+                    }}
+                    style={selectStyle}
+                  >
+                    <option value=""></option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="NT">NT</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+          </div>
+
+          <div
+            style={{
+              maxWidth: "1100px",
+              margin: "20px auto 0",
+              width: "100%",
+              padding: "18px 20px 20px",
+              backgroundColor: "#FFFFFF",
+              border: `1px solid ${BORDER}`,
+              borderRadius: "8px",
+              boxSizing: "border-box",
+            }}
+          >
+            <h3
+              style={{
+                margin: "0 0 14px",
                 fontSize: "15px",
                 fontWeight: 700,
                 color: NAVY,
-                letterSpacing: "0.06em",
+                letterSpacing: "0.02em",
               }}
             >
-              LEFT
-            </h2>
-
+              Lowest non-key muscles with motor function
+            </h3>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "42px 42px 42px minmax(90px, 1fr) 40px",
-                marginBottom: "6px",
-                gap: "6px",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: NAVY,
-                textAlign: "center",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: "16px",
               }}
             >
-              <span>LT</span>
-              <span>PP</span>
-              <span>M</span>
-              <span style={{ textAlign: "right" }}>Key muscle</span>
-              <span />
-            </div>
-
-            {renderLeftRows()}
-
-            <div style={{ marginTop: "16px" }}>
               <label
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: 6,
-                  fontSize: "12px",
+                  gap: 4,
+                  fontSize: "13px",
                   fontWeight: 600,
                   color: NAVY,
                 }}
               >
-                Deep anal pressure (DAP)
+                Right
                 <select
-                  value={exam.deepAnalPressure}
+                  value={exam.right.lowestNonKeyMuscleWithMotorFunction}
                   onChange={(e) => {
                     setExam((prev) => ({
                       ...prev,
-                      deepAnalPressure: e.target.value as BinaryObservation,
+                      right: {
+                        ...prev.right,
+                        lowestNonKeyMuscleWithMotorFunction: e.target.value,
+                      },
                     }));
                     setResult(null);
                   }}
                   style={selectStyle}
                 >
-                  <option value=""></option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                  <option value="NT">NT</option>
+                  <option value="">—</option>
+                  {LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {levelOptionLabel(level)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: NAVY,
+                }}
+              >
+                Left
+                <select
+                  value={exam.left.lowestNonKeyMuscleWithMotorFunction}
+                  onChange={(e) => {
+                    setExam((prev) => ({
+                      ...prev,
+                      left: {
+                        ...prev.left,
+                        lowestNonKeyMuscleWithMotorFunction: e.target.value,
+                      },
+                    }));
+                    setResult(null);
+                  }}
+                  style={selectStyle}
+                >
+                  <option value="">—</option>
+                  {LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {levelOptionLabel(level)}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
-          </section>
-        </div>
+          </div>
 
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "20px auto 0",
-            width: "100%",
-            padding: "18px 20px 20px",
-            backgroundColor: "#FFFFFF",
-            border: `1px solid ${BORDER}`,
-            borderRadius: "8px",
-            boxSizing: "border-box",
-          }}
-        >
-          <h3
-            style={{
-              margin: "0 0 14px",
-              fontSize: "15px",
-              fontWeight: 700,
-              color: NAVY,
-              letterSpacing: "0.02em",
-            }}
-          >
-            Lowest non-key muscles with motor function
-          </h3>
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: "16px",
-            }}
-          >
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                fontSize: "13px",
-                fontWeight: 600,
-                color: NAVY,
-              }}
-            >
-              Right
-              <select
-                value={exam.right.lowestNonKeyMuscleWithMotorFunction}
-                onChange={(e) => {
-                  setExam((prev) => ({
-                    ...prev,
-                    right: {
-                      ...prev.right,
-                      lowestNonKeyMuscleWithMotorFunction: e.target.value,
-                    },
-                  }));
-                  setResult(null);
-                }}
-                style={selectStyle}
-              >
-                <option value="">—</option>
-                {LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {levelOptionLabel(level)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-                fontSize: "13px",
-                fontWeight: 600,
-                color: NAVY,
-              }}
-            >
-              Left
-              <select
-                value={exam.left.lowestNonKeyMuscleWithMotorFunction}
-                onChange={(e) => {
-                  setExam((prev) => ({
-                    ...prev,
-                    left: {
-                      ...prev.left,
-                      lowestNonKeyMuscleWithMotorFunction: e.target.value,
-                    },
-                  }));
-                  setResult(null);
-                }}
-                style={selectStyle}
-              >
-                <option value="">—</option>
-                {LEVELS.map((level) => (
-                  <option key={level} value={level}>
-                    {levelOptionLabel(level)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "20px auto 0",
-            width: "100%",
-            padding: "18px 20px 20px",
-            backgroundColor: "#FFFFFF",
-            border: `1px solid ${BORDER}`,
-            borderRadius: "8px",
-            boxSizing: "border-box",
-          }}
-        >
-          <label
-            htmlFor="assessment-comments-main"
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontSize: "13px",
-              fontWeight: 700,
-              color: NAVY,
-            }}
-          >
-            Comments
-          </label>
-          <textarea
-            id="assessment-comments-main"
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            rows={4}
-            placeholder="Enter clinical notes…"
-            style={{
+              maxWidth: "1100px",
+              margin: "20px auto 0",
               width: "100%",
-              boxSizing: "border-box",
-              padding: "10px 12px",
+              padding: "18px 20px 20px",
+              backgroundColor: "#FFFFFF",
               border: `1px solid ${BORDER}`,
-              borderRadius: "6px",
-              fontSize: "14px",
-              fontFamily: "inherit",
-              color: NAVY,
-              resize: "vertical",
-              minHeight: "88px",
-            }}
-          />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-              gap: "12px",
-              marginTop: "16px",
+              borderRadius: "8px",
+              boxSizing: "border-box",
             }}
           >
-            <button
-              type="button"
-              disabled={saving}
+            <label
+              htmlFor="assessment-comments-main"
               style={{
-                ...actionBarBtnOutline,
-                opacity: saving ? 0.65 : 1,
-                cursor: saving ? "not-allowed" : "pointer",
+                display: "block",
+                marginBottom: "8px",
+                fontSize: "13px",
+                fontWeight: 700,
+                color: NAVY,
               }}
-              onClick={() => window.print()}
             >
-              Export PDF
-            </button>
-            <button
-              type="button"
-              disabled={saving}
+              Comments
+            </label>
+            <textarea
+              id="assessment-comments-main"
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              rows={4}
+              placeholder="Enter clinical notes…"
               style={{
-                ...actionBarBtnOutline,
-                opacity: saving ? 0.65 : 1,
-                cursor: saving ? "not-allowed" : "pointer",
+                width: "100%",
+                boxSizing: "border-box",
+                padding: "10px 12px",
+                border: `1px solid ${BORDER}`,
+                borderRadius: "6px",
+                fontSize: "14px",
+                fontFamily: "inherit",
+                color: NAVY,
+                resize: "vertical",
+                minHeight: "88px",
               }}
-              onClick={() => void handleSaveDraft()}
-            >
-              Save as Draft
-            </button>
-            <button
-              type="button"
-              disabled={saving}
+            />
+            <div
               style={{
-                ...actionBarBtnPrimary,
-                opacity: saving ? 0.65 : 1,
-                cursor: saving ? "not-allowed" : "pointer",
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: "12px",
+                marginTop: "16px",
               }}
-              onClick={() => void handleSaveFinal()}
             >
-              Save as Final Version
-            </button>
+              <button
+                type="button"
+                disabled={saving}
+                style={{
+                  ...actionBarBtnOutline,
+                  opacity: saving ? 0.65 : 1,
+                  cursor: saving ? "not-allowed" : "pointer",
+                }}
+                onClick={handleExportPDF}
+              >
+                Export PDF
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                style={{
+                  ...actionBarBtnOutline,
+                  opacity: saving ? 0.65 : 1,
+                  cursor: saving ? "not-allowed" : "pointer",
+                }}
+                onClick={() => void handleSaveDraft()}
+              >
+                Save as Draft
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                style={{
+                  ...actionBarBtnPrimary,
+                  opacity: saving ? 0.65 : 1,
+                  cursor: saving ? "not-allowed" : "pointer",
+                }}
+                onClick={() => void handleSaveFinal()}
+              >
+                Save as Final Version
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <ResultsPanel
-        result={result}
-        onCalculate={updateClassification}
-        motorPreview={totalsPreview}
-        columnTotals={columnTotals}
-      />
-    </div>
+        <ResultsPanel
+          result={result}
+          onCalculate={updateClassification}
+          motorPreview={totalsPreview}
+          columnTotals={columnTotals}
+        />
+      </div>
     </>
   );
 }
