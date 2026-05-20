@@ -6,6 +6,7 @@ import Header from "@/components/layout/Header";
 import AssessmentForm from "@/components/assessment/AssessmentForm";
 import PatientAssessmentBar from "@/components/assessment/PatientAssessmentBar";
 import { supabase } from "@/lib/supabaseClient";
+import AuthGuard from "@/components/AuthGuard";
 
 function formatNZDate(ds: string | null | undefined): string {
   if (!ds) return "";
@@ -136,6 +137,7 @@ function AssessmentNewInner() {
   }, [nhi]);
 
   return (
+    <AuthGuard>
     <div
       style={{
         minHeight: "100vh",
@@ -158,11 +160,13 @@ function AssessmentNewInner() {
         <AssessmentForm patientId={patientId} />
       </div>
     </div>
+    </AuthGuard>
   );
 }
 
 export default function AssessmentNewClient() {
   return (
+    <AuthGuard>
     <Suspense
       fallback={
         <div style={{ minHeight: "100vh", backgroundColor: "#F6F4EC" }}>
@@ -181,5 +185,6 @@ export default function AssessmentNewClient() {
     >
       <AssessmentNewInner />
     </Suspense>
+    </AuthGuard>
   );
 }
