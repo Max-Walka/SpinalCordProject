@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import { useEffect, useState } from "react";
@@ -40,3 +41,10 @@ export default function Page() {
 
   return <LandingPage />;
 }
+=======
+import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("/login");
+}
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806

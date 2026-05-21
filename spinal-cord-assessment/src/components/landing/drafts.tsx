@@ -3,6 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  DEFAULT_CLINICIAN_PATIENT_FILTER,
+  type ClinicianPatientFilter,
+} from "@/lib/clinicianPatientFilter";
+
+type DraftsProps = {
+  clinicianPatientFilter?: ClinicianPatientFilter;
+};
 
 export type DraftStatus = "OPEN" | "DRAFT" | "FINALIZED";
 
@@ -81,6 +89,7 @@ function labelStatus(status: DraftStatus) {
   }
 }
 
+<<<<<<< HEAD
 function SkeletonRows({ count, cols }: { count: number; cols: number }) {
   const widths = ["skeleton-bar-short", "skeleton-bar-full", "skeleton-bar-short", "skeleton-bar-short", "skeleton-bar-short"];
   return (
@@ -99,6 +108,11 @@ function SkeletonRows({ count, cols }: { count: number; cols: number }) {
 }
 
 export default function Drafts() {
+=======
+export default function Drafts({
+  clinicianPatientFilter = DEFAULT_CLINICIAN_PATIENT_FILTER,
+}: DraftsProps) {
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
   const router = useRouter();
 
   const [drafts, setDrafts] = useState<DraftAssessment[]>([]);
@@ -211,6 +225,7 @@ export default function Drafts() {
     );
   }, [drafts]);
 
+<<<<<<< HEAD
   function handleRowKeyDown(e: React.KeyboardEvent, patientId: number) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -220,6 +235,17 @@ export default function Drafts() {
 
   function handleContinueClick(e: React.MouseEvent, assessmentId: number) {
     e.stopPropagation();
+=======
+  const filterLoading = clinicianPatientFilter.status === "loading";
+
+  const visibleDrafts = useMemo(() => {
+    if (clinicianPatientFilter.status === "all") return sortedDrafts;
+    if (clinicianPatientFilter.status === "loading") return [];
+    return sortedDrafts.filter((d) => clinicianPatientFilter.patientIds.has(d.patientId));
+  }, [sortedDrafts, clinicianPatientFilter]);
+
+  function openDraft(assessmentId: number) {
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
     router.push(`/assessment?assessmentId=${assessmentId}`);
   }
 
@@ -263,9 +289,9 @@ export default function Drafts() {
     >
       <h2
         style={{
-          fontSize: "20px",
-          fontWeight: 600,
-          marginBottom: "14px",
+          fontSize: "22px",
+          fontWeight: 700,
+          margin: "0 0 14px 0",
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
@@ -314,15 +340,24 @@ export default function Drafts() {
           </thead>
 
           <tbody>
+<<<<<<< HEAD
             {loading ? (
               <SkeletonRows count={3} cols={colSpan} />
+=======
+            {loading || filterLoading ? (
+              <tr>
+                <td colSpan={5} style={{ padding: "24px", textAlign: "center" }}>
+                  Loading...
+                </td>
+              </tr>
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
             ) : error ? (
               <tr>
                 <td colSpan={colSpan} style={{ padding: "24px", textAlign: "center", color: "red" }}>
                   {error}
                 </td>
               </tr>
-            ) : sortedDrafts.length === 0 ? (
+            ) : visibleDrafts.length === 0 ? (
               <tr>
                 <td colSpan={colSpan}>
                   <div className="empty-state">
@@ -337,15 +372,28 @@ export default function Drafts() {
                 </td>
               </tr>
             ) : (
-              sortedDrafts.map((draft) => (
+              visibleDrafts.map((draft) => (
                 <tr
                   key={draft.id}
+<<<<<<< HEAD
                   className="clickable-row"
                   role="link"
                   tabIndex={0}
                   aria-label={`View patient ${draft.patientName}`}
                   onClick={() => router.push(`/history/${draft.patientId}`)}
                   onKeyDown={(e) => handleRowKeyDown(e, draft.patientId)}
+=======
+                  onClick={() => openDraft(draft.assessmentId)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F8FAFC";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  style={{
+                    cursor: "pointer",
+                  }}
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
                 >
                   <td className="nhi-cell" style={bodyCellStyle}>{draft.nhi}</td>
                   <td

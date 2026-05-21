@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+<<<<<<< HEAD
 import { supabase } from "@/lib/supabaseClient";
 import { hasValidStaffSession } from "@/lib/staffSession";
+=======
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +28,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+<<<<<<< HEAD
     if (!supabase) {
       setError("Database connection is not configured.");
       setLoading(false);
@@ -39,10 +43,28 @@ export default function LoginPage() {
 
     if (queryError) {
       setError("Invalid username or password. Please try again.");
+=======
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username,
+        password,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setError(result.error || "Invalid username or password");
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
       setLoading(false);
       return;
     }
 
+<<<<<<< HEAD
     if (!data) {
       setError("Invalid username or password");
       setLoading(false);
@@ -79,19 +101,26 @@ export default function LoginPage() {
       .join(" ");
 
     localStorage.setItem(
+=======
+    sessionStorage.setItem(
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
       "staffInfo",
       JSON.stringify({
-        username,
-        fullName,
+        username: result.username,
+        fullName: result.fullName,
+        staffId: result.staffId,
       })
     );
 
-    router.push("/");
+    router.push("/dashboard");
   }
 
   return (
     <div style={{ display: "flex", height: "100vh" }}>
+<<<<<<< HEAD
 
+=======
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
       {/* LEFT PANEL */}
       <div
         style={{
@@ -109,9 +138,13 @@ export default function LoginPage() {
           <div style={{ fontWeight: 700, fontSize: 30 }}>
             Health New Zealand
           </div>
+<<<<<<< HEAD
           <div style={{ color: "#6EC1E4", fontSize: 20 }}>
             Te Whatu Ora
           </div>
+=======
+          <div style={{ color: "#6EC1E4", fontSize: 20 }}>Te Whatu Ora</div>
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
         </div>
 
         <h1
@@ -148,7 +181,11 @@ export default function LoginPage() {
           }}
         >
           <div>
+<<<<<<< HEAD
             <label htmlFor="staff-username" style={{ fontSize: 13, fontWeight: 500 }}>
+=======
+            <label style={{ fontSize: 13, fontWeight: 500 }}>
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
               STAFF USERNAME
             </label>
             <input
@@ -185,7 +222,11 @@ export default function LoginPage() {
               }}
               style={{
                 width: "100%",
+<<<<<<< HEAD
                 padding: "14px",
+=======
+                padding: "14px", // was 10px
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
                 border: "1px solid #ccc",
                 fontSize: "16px",
                 borderRadius: "6px",
@@ -216,7 +257,11 @@ export default function LoginPage() {
             style={{
               backgroundColor: "#2F3E5C",
               color: "white",
+<<<<<<< HEAD
               padding: "14px",
+=======
+              padding: "14px", // was 12px
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
               border: "none",
               cursor: "pointer",
               fontSize: "16px",

@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  DEFAULT_CLINICIAN_PATIENT_FILTER,
+  type ClinicianPatientFilter,
+} from "@/lib/clinicianPatientFilter";
+import TablePagination from "@/components/landing/TablePagination";
+
+const PAGE_SIZE = 12;
+
+type UpcomingReviewsProps = {
+  clinicianPatientFilter?: ClinicianPatientFilter;
+};
 
 type AssessmentRow = {
   assessment_id: number;
@@ -28,6 +39,8 @@ type UpcomingReviewDisplay = {
   patientName: string;
   date: string;
   isToday: boolean;
+  isOverdue: boolean;
+  reviewDateMs: number;
 };
 
 function formatReviewDate(dateString: string) {
@@ -46,10 +59,12 @@ function formatReviewDate(dateString: string) {
     today.getDate()
   );
 
-  const isToday = reviewOnly.getTime() === todayOnly.getTime();
+  const reviewDateMs = reviewOnly.getTime();
+  const isToday = reviewDateMs === todayOnly.getTime();
+  const isOverdue = reviewDateMs < todayOnly.getTime();
 
   if (isToday) {
-    return { formatted: "Today", isToday: true };
+    return { formatted: "Today", isToday: true, isOverdue: false, reviewDateMs };
   }
 
   const day = String(reviewDate.getDate()).padStart(2, "0");
@@ -59,9 +74,12 @@ function formatReviewDate(dateString: string) {
   return {
     formatted: `${day}/${month}/${year}`,
     isToday: false,
+    isOverdue,
+    reviewDateMs,
   };
 }
 
+<<<<<<< HEAD
 function SkeletonRows({ count }: { count: number }) {
   const widths = ["skeleton-bar-short", "skeleton-bar-full", "skeleton-bar-short"];
   return (
@@ -80,11 +98,18 @@ function SkeletonRows({ count }: { count: number }) {
 }
 
 export default function UpcomingReviews() {
+=======
+export default function UpcomingReviews({
+  clinicianPatientFilter = DEFAULT_CLINICIAN_PATIENT_FILTER,
+}: UpcomingReviewsProps) {
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
   const router = useRouter();
 
   const [rows, setRows] = useState<UpcomingReviewDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bellHover, setBellHover] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchUpcomingReviews() {
@@ -97,16 +122,10 @@ export default function UpcomingReviews() {
       setLoading(true);
       setError(null);
 
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, "0");
-      const dd = String(today.getDate()).padStart(2, "0");
-      const todayString = `${yyyy}-${mm}-${dd}`;
-
       const { data: assessmentData, error: assessmentError } = await supabase
         .from("Assessment")
         .select("assessment_id, PATIENTpatient_id, review_date")
-        .gte("review_date", todayString)
+        .not("review_date", "is", null)
         .order("review_date", { ascending: true })
         .limit(50);
 
@@ -171,6 +190,8 @@ export default function UpcomingReviews() {
             : `Patient #${assessment.PATIENTpatient_id}`,
           date: reviewDate.formatted,
           isToday: reviewDate.isToday,
+          isOverdue: reviewDate.isOverdue,
+          reviewDateMs: reviewDate.reviewDateMs,
         };
       });
 
@@ -181,6 +202,41 @@ export default function UpcomingReviews() {
     fetchUpcomingReviews();
   }, []);
 
+  const filterLoading = clinicianPatientFilter.status === "loading";
+
+  const { sortedRows, overdueCount } = useMemo(() => {
+    let list: UpcomingReviewDisplay[];
+    if (clinicianPatientFilter.status === "loading") {
+      list = [];
+    } else if (clinicianPatientFilter.status === "all") {
+      list = rows;
+    } else {
+      list = rows.filter((r) => clinicianPatientFilter.patientIds.has(r.patientId));
+    }
+
+    const overdue = list.filter((r) => r.isOverdue).length;
+    const sorted = [...list].sort((a, b) => {
+      if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
+      return a.reviewDateMs - b.reviewDateMs;
+    });
+    return { sortedRows: sorted, overdueCount: overdue };
+  }, [rows, clinicianPatientFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [clinicianPatientFilter]);
+
+  const totalCount = sortedRows.length;
+  const paginatedRows = sortedRows.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalCount]);
+
   const headerCellStyle: React.CSSProperties = {
     padding: "14px 12px",
     minHeight: "48px",
@@ -189,7 +245,7 @@ export default function UpcomingReviews() {
     top: 0,
     backgroundColor: "#FFFFFF",
     zIndex: 2,
-    textAlign: "left",
+    textAlign: "center",
     borderBottom: "1px solid #D6D6D6",
   };
 
@@ -198,6 +254,7 @@ export default function UpcomingReviews() {
     minHeight: "48px",
     verticalAlign: "middle",
     borderBottom: "1px solid #E5E7EB",
+    textAlign: "center",
   };
 
   function handleRowKeyDown(e: React.KeyboardEvent, patientId: number) {
@@ -224,10 +281,12 @@ export default function UpcomingReviews() {
         minHeight: 0,
       }}
     >
-      <h2
+      <div
         style={{
-          fontSize: "20px",
-          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
           marginBottom: "14px",
           flexShrink: 0,
           display: "flex",
@@ -235,6 +294,7 @@ export default function UpcomingReviews() {
           gap: "8px",
         }}
       >
+<<<<<<< HEAD
         Upcoming Reviews
         {!loading && rows.length > 0 && (
           <span style={{
@@ -249,6 +309,113 @@ export default function UpcomingReviews() {
           </span>
         )}
       </h2>
+=======
+        <h2
+          style={{
+            fontSize: "22px",
+            fontWeight: 700,
+            margin: 0,
+          }}
+        >
+          Upcoming Reviews
+        </h2>
+        <div
+          style={{ position: "relative", flexShrink: 0 }}
+          onMouseEnter={() => setBellHover(true)}
+          onMouseLeave={() => setBellHover(false)}
+        >
+          <button
+            type="button"
+            aria-label={
+              overdueCount > 0
+                ? `${overdueCount} assessment${overdueCount === 1 ? "" : "s"} overdue`
+                : "No overdue assessments"
+            }
+            title={
+              overdueCount > 0
+                ? `${overdueCount} assessment${overdueCount === 1 ? "" : "s"} overdue`
+                : "No overdue assessments"
+            }
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "6px",
+              margin: 0,
+              border: "none",
+              background: "transparent",
+              cursor: "default",
+              borderRadius: "8px",
+              color: "inherit",
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+              style={{ display: "block", color: overdueCount > 0 ? "#DC2626" : "#15284C" }}
+            >
+              <path
+                d="M18 8a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7zM13.73 21a2 2 0 01-3.46 0"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {overdueCount > 0 ? (
+              <span
+                style={{
+                  position: "absolute",
+                  top: "2px",
+                  right: "2px",
+                  minWidth: "20px",
+                  height: "20px",
+                  padding: "0 5px",
+                  borderRadius: "999px",
+                  backgroundColor: "#DC2626",
+                  color: "#FFFFFF",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  lineHeight: "20px",
+                  textAlign: "center",
+                  boxSizing: "border-box",
+                }}
+              >
+                {overdueCount > 99 ? "99+" : overdueCount}
+              </span>
+            ) : null}
+          </button>
+          {bellHover ? (
+            <div
+              role="tooltip"
+              style={{
+                position: "absolute",
+                top: "calc(100% + 8px)",
+                right: 0,
+                padding: "10px 14px",
+                backgroundColor: "#15284C",
+                color: "#FFFFFF",
+                fontSize: "13px",
+                fontWeight: 500,
+                borderRadius: "8px",
+                whiteSpace: "nowrap",
+                zIndex: 30,
+                boxShadow: "0 6px 16px rgba(0,0,0,0.18)",
+                pointerEvents: "none",
+              }}
+            >
+              {overdueCount === 0
+                ? "No assessments overdue"
+                : `${overdueCount} assessment${overdueCount === 1 ? "" : "s"} overdue`}
+            </div>
+          ) : null}
+        </div>
+      </div>
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
 
       <div
         style={{
@@ -275,8 +442,24 @@ export default function UpcomingReviews() {
           </thead>
 
           <tbody>
+<<<<<<< HEAD
             {loading ? (
               <SkeletonRows count={3} />
+=======
+            {loading || filterLoading ? (
+              <tr>
+                <td
+                  colSpan={3}
+                  style={{
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "#6B7280",
+                  }}
+                >
+                  Loading...
+                </td>
+              </tr>
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
             ) : error ? (
               <tr>
                 <td
@@ -290,7 +473,7 @@ export default function UpcomingReviews() {
                   {error}
                 </td>
               </tr>
-            ) : rows.length === 0 ? (
+            ) : sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={3}>
                   <div className="empty-state">
@@ -307,6 +490,7 @@ export default function UpcomingReviews() {
                 </td>
               </tr>
             ) : (
+<<<<<<< HEAD
               rows.map((row) => (
                 <tr
                   key={row.id}
@@ -345,10 +529,57 @@ export default function UpcomingReviews() {
                   </td>
                 </tr>
               ))
+=======
+              paginatedRows.map((row) => {
+                const dateColor = row.isOverdue ? "#DC2626" : row.isToday ? "#C0392B" : "#15284C";
+                const defaultBg = row.isOverdue ? "#FEF2F2" : "transparent";
+                return (
+                  <tr
+                    key={row.id}
+                    onClick={() => router.push(`/history/${row.patientId}`)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = row.isOverdue ? "#FEE2E2" : "#F8FAFC";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = defaultBg;
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      backgroundColor: defaultBg,
+                    }}
+                  >
+                    <td style={{ ...bodyCellStyle, color: row.isOverdue ? "#DC2626" : "#15284C" }}>
+                      {row.nhi}
+                    </td>
+                    <td style={{ ...bodyCellStyle, color: row.isOverdue ? "#DC2626" : "#15284C" }}>
+                      {row.patientName}
+                    </td>
+                    <td
+                      style={{
+                        ...bodyCellStyle,
+                        color: dateColor,
+                        fontWeight: row.isOverdue || row.isToday ? 600 : 400,
+                      }}
+                    >
+                      {row.date}
+                    </td>
+                  </tr>
+                );
+              })
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
             )}
           </tbody>
         </table>
       </div>
+
+      {!loading && !error && totalCount > 0 && (
+        <TablePagination
+          page={page}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

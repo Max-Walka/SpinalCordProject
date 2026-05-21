@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+<<<<<<< HEAD
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -10,9 +11,21 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuItemsRef = useRef<(HTMLButtonElement | null)[]>([]);
+=======
+import { getLoggedInStaff, logoutStaff } from "@/lib/auth";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export default function Header() {
+  const router = useRouter();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [staffName, setStaffName] = useState("Loading...");
+  const [menuOpen, setMenuOpen] = useState(false);
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
 
   // Load staff name from localStorage
   useEffect(() => {
+<<<<<<< HEAD
     const staffInfo = localStorage.getItem("staffInfo");
     if (!staffInfo) {
       setStaffName("Unknown User");
@@ -67,6 +80,28 @@ export default function Header() {
   // Sign out function
   function handleSignOut() {
     localStorage.removeItem("staffInfo");
+=======
+    const staff = getLoggedInStaff();
+    setStaffName(staff?.fullName ?? "Unknown User");
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function onMouseDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [menuOpen]);
+
+  function handleLogout() {
+    logoutStaff();
+    setMenuOpen(false);
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
     router.push("/login");
   }
 
@@ -82,6 +117,7 @@ export default function Header() {
         width: "100%",
       }}
     >
+<<<<<<< HEAD
       <Link
         href="/"
         className="header-logo"
@@ -118,11 +154,76 @@ export default function Header() {
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") setMenuOpen((prev) => !prev);
+=======
+      <Link href="/dashboard" style={{ textDecoration: "none" }}>
+        <div
+          style={{
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            display: "inline-block",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = "0.8";
+            e.currentTarget.style.transform = "scale(1.03)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = "1";
+            e.currentTarget.style.transform = "scale(1)";
           }}
         >
-          {staffName}
-        </span>
+          <div style={{ fontSize: "28px", fontWeight: 700, color: "#FFFFFF" }}>
+            Health New Zealand
+          </div>
+          <div
+            style={{
+              fontSize: "20px",
+              fontWeight: 700,
+              color: "#1FC2D5",
+            }}
+          >
+            Te Whatu Ora
+          </div>
+        </div>
+      </Link>
 
+      <div
+        ref={menuRef}
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Profile menu"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            padding: 0,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "inherit",
+            fontFamily: "inherit",
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
+          }}
+        >
+          <span
+            style={{
+              fontSize: "18px",
+              color: "#AEB9D3",
+            }}
+          >
+            {staffName}
+          </span>
+
+<<<<<<< HEAD
         {/* Person Icon */}
         <div
           style={{
@@ -136,29 +237,64 @@ export default function Header() {
           }}
           onClick={() => setMenuOpen((prev) => !prev)}
         >
+=======
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
           <div
             style={{
-              width: "16px",
-              height: "16px",
+              width: "58px",
+              height: "58px",
               borderRadius: "50%",
-              backgroundColor: "#7E90BA",
-              position: "absolute",
-              top: "10px",
-              left: "50%",
-              transform: "translateX(-50%)",
+              border: "4px solid #7E90BA",
+              position: "relative",
             }}
+<<<<<<< HEAD
           />
+=======
+          >
+            <div
+              style={{
+                width: "16px",
+                height: "16px",
+                borderRadius: "50%",
+                backgroundColor: "#7E90BA",
+                position: "absolute",
+                top: "10px",
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            />
+            <div
+              style={{
+                width: "28px",
+                height: "14px",
+                borderRadius: "14px 14px 10px 10px",
+                backgroundColor: "#7E90BA",
+                position: "absolute",
+                bottom: "10px",
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            />
+          </div>
+        </button>
+
+        {menuOpen ? (
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
           <div
+            role="menu"
             style={{
-              width: "28px",
-              height: "14px",
-              borderRadius: "14px 14px 10px 10px",
-              backgroundColor: "#7E90BA",
               position: "absolute",
-              bottom: "10px",
-              left: "50%",
-              transform: "translateX(-50%)",
+              top: "calc(100% + 10px)",
+              right: 0,
+              minWidth: "200px",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #D6D6D6",
+              borderRadius: "8px",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              overflow: "hidden",
+              zIndex: 50,
             }}
+<<<<<<< HEAD
           />
         </div>
 
@@ -215,6 +351,36 @@ export default function Header() {
             </button>
           </div>
         )}
+=======
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                padding: "16px 20px",
+                border: "none",
+                backgroundColor: "#FFFFFF",
+                color: "#DC2626",
+                fontSize: "16px",
+                fontWeight: 600,
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#FEF2F2";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#FFFFFF";
+              }}
+            >
+              Log Out
+            </button>
+          </div>
+        ) : null}
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
       </div>
     </header>
   );

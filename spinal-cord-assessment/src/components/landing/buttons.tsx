@@ -8,6 +8,7 @@ export default function Buttons() {
   return (
     <div style={{ display: "flex", gap: "12px" }}>
       <button
+<<<<<<< HEAD
         className="btn"
         onClick={() => router.push("/patients/search")}
         style={{
@@ -21,6 +22,20 @@ export default function Buttons() {
           color: "#FFFFFF",
           fontSize: "14px",
           fontWeight: 600,
+=======
+        type="button"
+        onClick={() => router.push("/search")}
+        style={{
+          padding: "10px 16px",
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #D6D6D6",
+          borderRadius: "6px",
+          color: "#15284C",
+          fontSize: "14px",
+          fontWeight: 600,
+          fontFamily: "inherit",
+          cursor: "pointer",
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
         }}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -29,6 +44,7 @@ export default function Buttons() {
         </svg>
         Search Patient
       </button>
+<<<<<<< HEAD
 
       <button
         className="btn"
@@ -44,6 +60,8 @@ export default function Buttons() {
       >
         + New Patient
       </button>
+=======
+>>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
     </div>
   );
 }
