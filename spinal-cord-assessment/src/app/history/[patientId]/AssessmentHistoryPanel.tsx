@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
+import TablePagination from "@/components/landing/TablePagination";
+
+const PAGE_SIZE = 12;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,6 +121,10 @@ function isoDatePrefix(ds: string | null | undefined): string {
   return t >= 0 ? ds.slice(0, t) : ds.slice(0, 10);
 }
 
+function isDraftStatus(status: string | null | undefined): boolean {
+  return displayStatus(status) !== "FINAL";
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -132,6 +139,7 @@ export default function AssessmentHistoryPanel({
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -154,6 +162,7 @@ export default function AssessmentHistoryPanel({
 
   function applyFilters() {
     setFilters(draft);
+    setPage(1);
     setOpen(false);
   }
 
@@ -161,6 +170,7 @@ export default function AssessmentHistoryPanel({
     const empty = { ...EMPTY_FILTERS };
     setDraft(empty);
     setFilters(empty);
+    setPage(1);
     setOpen(false);
   }
 
@@ -184,16 +194,37 @@ export default function AssessmentHistoryPanel({
 
   const f = filters;
 
-  const visible = assessments.filter((a) => {
-    const dateKey = isoDatePrefix(a.assessment_date);
-    if (f.dateFrom && dateKey && dateKey < f.dateFrom) return false;
-    if (f.dateTo && dateKey && dateKey > f.dateTo) return false;
-    if (f.clinician && a.clinicianName !== f.clinician) return false;
-    if (f.aisGrade && (a.alsGrade ?? "").toUpperCase() !== f.aisGrade)
-      return false;
-    if (f.status && displayStatus(a.status) !== f.status) return false;
-    return true;
-  });
+  const visible = assessments
+    .filter((a) => {
+      const dateKey = isoDatePrefix(a.assessment_date);
+      if (f.dateFrom && dateKey && dateKey < f.dateFrom) return false;
+      if (f.dateTo && dateKey && dateKey > f.dateTo) return false;
+      if (f.clinician && a.clinicianName !== f.clinician) return false;
+      if (f.aisGrade && (a.alsGrade ?? "").toUpperCase() !== f.aisGrade)
+        return false;
+      if (f.status && displayStatus(a.status) !== f.status) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const aDraft = isDraftStatus(a.status);
+      const bDraft = isDraftStatus(b.status);
+      if (aDraft !== bDraft) return aDraft ? -1 : 1;
+
+      const dateA = isoDatePrefix(a.assessment_date);
+      const dateB = isoDatePrefix(b.assessment_date);
+      return dateB.localeCompare(dateA);
+    });
+
+  const totalCount = visible.length;
+  const paginatedVisible = visible.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalCount]);
 
   const activeCount = [
     f.dateFrom,
@@ -532,10 +563,6 @@ export default function AssessmentHistoryPanel({
                 </div>
               ) : null}
             </div>
-
-            <button type="button" style={dashboardOutlinedControlStyle}>
-              Export All PDFs
-            </button>
           </div>
         </div>
 
@@ -576,7 +603,7 @@ export default function AssessmentHistoryPanel({
                 : "No assessments match these filters."}
             </div>
           ) : (
-            visible.map((a) => (
+            paginatedVisible.map((a) => (
               <div
                 key={a.assessment_id}
                 style={{
@@ -608,13 +635,22 @@ export default function AssessmentHistoryPanel({
                       fontFamily: "inherit",
                     }}
                   >
-                    Open
+                    {displayStatus(a.status) === "FINAL" ? "View" : "Open"}
                   </Link>
                 </div>
               </div>
             ))
           )}
         </div>
+
+        {totalCount > 0 && (
+          <TablePagination
+            page={page}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AuthGuard>
   );

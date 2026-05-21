@@ -159,6 +159,23 @@ function hasEmptyScores(exam: UiExam) {
   return false;
 }
 
+function computeResultFromExam(
+  target: UiExam
+): InstanceType<typeof ISNCSCI> | null {
+  try {
+    return new ISNCSCI(toISNCSCIExam(target));
+  } catch {
+    return null;
+  }
+}
+
+function tryComputeClassification(
+  target: UiExam
+): InstanceType<typeof ISNCSCI> | null {
+  if (hasEmptyScores(target)) return null;
+  return computeResultFromExam(target);
+}
+
 function sumMotorBlock(
   exam: UiExam,
   side: Side,
@@ -211,26 +228,66 @@ function toISNCSCIExam(exam: UiExam): ISNCSCIExam {
 
 type AssessmentFormProps = {
   patientId: number | null;
+  patientNhi?: string | null;
+  initialAssessmentId?: number | null;
+  initialExam?: UiExam | null;
+  initialComments?: string;
+  readOnly?: boolean;
 };
 
-export default function AssessmentForm({ patientId }: AssessmentFormProps) {
+export default function AssessmentForm({
+  patientId,
+  patientNhi = null,
+  initialAssessmentId = null,
+  initialExam = null,
+  initialComments = "",
+  readOnly = false,
+}: AssessmentFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nhi = searchParams.get("nhi");
+  const nhi = patientNhi ?? searchParams.get("nhi");
 
   const [patient, setPatient] = useState<any>(null);
-  const [exam, setExam] = useState<UiExam>(defaultExam);
+  const [exam, setExam] = useState<UiExam>(initialExam ?? defaultExam);
   const [result, setResult] = useState<unknown>(null);
-  const [comments, setComments] = useState("");
+  const [comments, setComments] = useState(initialComments);
   const [linkedAssessmentId, setLinkedAssessmentId] = useState<number | null>(
-    null
+    initialAssessmentId
   );
   const [saving, setSaving] = useState(false);
-  const [saveCompleteOpen, setSaveCompleteOpen] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<
+    { type: "success" } | { type: "error"; message: string } | null
+  >(null);
+
+  function showSaveError(message: string) {
+    setSaveFeedback({ type: "error", message });
+  }
+
+  function showSaveSuccess() {
+    setSaveFeedback({ type: "success" });
+  }
 
   useEffect(() => {
-    setLinkedAssessmentId(null);
-  }, [patientId]);
+    if (initialAssessmentId != null) {
+      setLinkedAssessmentId(initialAssessmentId);
+    } else {
+      setLinkedAssessmentId(null);
+    }
+  }, [initialAssessmentId, patientId]);
+
+  useEffect(() => {
+    if (initialExam) setExam(initialExam);
+  }, [initialExam]);
+
+  useEffect(() => {
+    setComments(initialComments);
+  }, [initialComments]);
+
+  useEffect(() => {
+    if (!readOnly) return;
+    const computed = computeResultFromExam(exam);
+    if (computed) setResult(computed);
+  }, [readOnly, exam]);
 
   useEffect(() => {
     async function loadPatient() {
@@ -267,13 +324,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
   }, [nhi]);
 
   useEffect(() => {
-    if (!saveCompleteOpen) return;
+    if (!saveFeedback) return;
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setSaveCompleteOpen(false);
+      if (e.key === "Escape") setSaveFeedback(null);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [saveCompleteOpen]);
+  }, [saveFeedback]);
 
   const totalsPreview = useMemo(() => {
     const ur = sumMotorBlock(exam, "right", UPPER_MOTOR_LEVELS);
@@ -319,45 +376,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
     };
   }, [result, totalsPreview]);
 
-  useEffect(() => {
-    async function loadPatient() {
-      if (!nhi) return;
-
-      const { data: patientData, error: patientError } = await supabase
-        .from("Patient")
-        .select("*")
-        .eq("nhi_number", nhi)
-        .single();
-
-      if (patientError || !patientData) {
-        console.error("Could not load patient:", patientError);
-        return;
-      }
-
-      const { data: nameData, error: nameError } = await supabase
-        .from("Patient Name")
-        .select("*")
-        .eq("PATIENTpatient_id", patientData.patient_id)
-        .single();
-
-      if (nameError) {
-        console.error("Could not load patient name:", nameError);
-      }
-
-      setPatient({
-        ...patientData,
-        name: nameData,
-      });
-    }
-
-    loadPatient();
-  }, [nhi]);
   function update(
     side: Side,
     type: ScoreType,
     level: string,
     rawValue: string
   ) {
+    if (readOnly) return;
     const value = cleanValue(rawValue, type);
 
     setExam((prev) => {
@@ -404,8 +429,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
       return null;
     }
 
-    const validExam = toISNCSCIExam(exam);
-    return new ISNCSCI(validExam);
+    return computeResultFromExam(exam);
   }
 
   function calculate(): boolean {
@@ -416,15 +440,16 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
   }
 
   async function handleSaveDraft() {
+    if (readOnly) return;
     if (patientId == null) {
-      alert(
+      showSaveError(
         "Open this assessment with a patient NHI (from Patient Search) so it can be saved to that patient."
       );
       return;
     }
     const staffId = readStaffIdFromStorage();
     if (!staffId) {
-      alert("You must be logged in to save.");
+      showSaveError("You must be logged in to save.");
       return;
     }
     setSaving(true);
@@ -434,26 +459,42 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
         staffId,
         mode: "draft",
         existingAssessmentId: linkedAssessmentId,
+        exam,
+        comments,
       });
       setLinkedAssessmentId(assessmentId);
-      alert("Draft saved.");
+
+      const calculated = tryComputeClassification(exam);
+      if (calculated) {
+        const aisGrade = extractAisGradeFromResult(calculated);
+        if (aisGrade) {
+          await persistExamAndClassification({
+            assessmentId,
+            alsGrade: aisGrade,
+          });
+          setResult(calculated);
+        }
+      }
+
+      showSaveSuccess();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Could not save draft.");
+      showSaveError(e instanceof Error ? e.message : "Could not save draft.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handleSaveFinal() {
+    if (readOnly) return;
     if (patientId == null) {
-      alert(
+      showSaveError(
         "Open this assessment with a patient NHI (from Patient Search) so it can be saved to that patient."
       );
       return;
     }
     const staffId = readStaffIdFromStorage();
     if (!staffId) {
-      alert("You must be logged in to save.");
+      showSaveError("You must be logged in to save.");
       return;
     }
 
@@ -463,7 +504,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
 
     const aisGrade = extractAisGradeFromResult(calculated);
     if (!aisGrade) {
-      alert(
+      showSaveError(
         "Could not read AIS grade from the classification. Use Update, then try again."
       );
       return;
@@ -476,16 +517,17 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
         staffId,
         mode: "final",
         existingAssessmentId: linkedAssessmentId,
+        exam,
+        comments,
       });
       await persistExamAndClassification({
         assessmentId,
         alsGrade: aisGrade,
       });
       setLinkedAssessmentId(assessmentId);
-      setSaveCompleteOpen(true);
+      showSaveSuccess();
     } catch (e) {
-      setSaveCompleteOpen(false);
-      alert(e instanceof Error ? e.message : "Could not save.");
+      showSaveError(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setSaving(false);
     }
@@ -496,10 +538,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
   }
 
   function handleExportPDF() {
+    const exportResult =
+      result ?? (readOnly ? computeResultFromExam(exam) : null);
+
     exportAssessmentPdf({
       patient,
       exam,
-      result,
+      result: exportResult,
       nhi,
     });
   }
@@ -515,7 +560,14 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
         value={value}
         onChange={(e) => update(side, type, level, e.target.value)}
         maxLength={2}
-        style={inputStyle}
+        readOnly={readOnly}
+        disabled={readOnly}
+        style={{
+          ...inputStyle,
+          ...(readOnly
+            ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+            : {}),
+        }}
       />
     );
   }
@@ -604,11 +656,11 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
 
   return (
     <>
-      {saveCompleteOpen ? (
+      {saveFeedback ? (
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="save-complete-title"
+          aria-labelledby="save-feedback-title"
           style={{
             position: "fixed",
             inset: 0,
@@ -619,7 +671,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
             justifyContent: "center",
             padding: 24,
           }}
-          onClick={() => setSaveCompleteOpen(false)}
+          onClick={() => setSaveFeedback(null)}
         >
           <div
             role="presentation"
@@ -635,45 +687,78 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
             }}
           >
             <p
-              id="save-complete-title"
+              id="save-feedback-title"
               style={{
                 margin: 0,
                 fontSize: "20px",
                 fontWeight: 700,
-                color: NAVY,
+                color: saveFeedback.type === "success" ? NAVY : "#DC2626",
               }}
             >
-              Save complete
+              {saveFeedback.type === "success" ? "Successful" : "Error"}
             </p>
-            <p
-              style={{
-                margin: "12px 0 22px",
-                fontSize: "14px",
-                lineHeight: 1.5,
-                color: "#5C667A",
-              }}
-            >
-              Stay on this assessment, or open this patient&apos;s history.
-            </p>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "12px",
-              }}
-            >
-              <button
-                type="button"
+            {saveFeedback.type === "error" ? (
+              <p
                 style={{
-                  ...actionBarBtnOutline,
-                  padding: "14px 16px",
-                  minHeight: "48px",
-                  fontSize: "15px",
+                  margin: "12px 0 22px",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                  color: "#5C667A",
                 }}
-                onClick={() => setSaveCompleteOpen(false)}
               >
-                Stay on assessment
-              </button>
+                {saveFeedback.message}
+              </p>
+            ) : (
+              <p
+                style={{
+                  margin: "12px 0 22px",
+                  fontSize: "14px",
+                  lineHeight: 1.5,
+                  color: "#5C667A",
+                }}
+              >
+                Stay on this assessment, or open this patient&apos;s history.
+              </p>
+            )}
+            {saveFeedback.type === "success" ? (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
+                <button
+                  type="button"
+                  style={{
+                    ...actionBarBtnOutline,
+                    padding: "14px 16px",
+                    minHeight: "48px",
+                    fontSize: "15px",
+                  }}
+                  onClick={() => setSaveFeedback(null)}
+                >
+                  Stay on assessment
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...actionBarBtnPrimary,
+                    padding: "14px 16px",
+                    minHeight: "48px",
+                    fontSize: "15px",
+                  }}
+                  onClick={() => {
+                    setSaveFeedback(null);
+                    if (patientId != null) {
+                      router.push(`/history/${patientId}`);
+                    }
+                  }}
+                >
+                  Patient history
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 style={{
@@ -681,17 +766,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                   padding: "14px 16px",
                   minHeight: "48px",
                   fontSize: "15px",
+                  width: "100%",
                 }}
-                onClick={() => {
-                  setSaveCompleteOpen(false);
-                  if (patientId != null) {
-                    router.push(`/history/${patientId}`);
-                  }
-                }}
+                onClick={() => setSaveFeedback(null)}
               >
-                Patient history
+                Close
               </button>
-            </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -775,6 +856,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                   <select
                     value={exam.voluntaryAnalContraction}
                     onChange={(e) => {
+                      if (readOnly) return;
                       setExam((prev) => ({
                         ...prev,
                         voluntaryAnalContraction: e.target
@@ -782,7 +864,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                       }));
                       setResult(null);
                     }}
-                    style={selectStyle}
+                    disabled={readOnly}
+                    style={{
+                      ...selectStyle,
+                      ...(readOnly
+                        ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+                        : {}),
+                    }}
                   >
                     <option value=""></option>
                     <option value="Yes">Yes</option>
@@ -855,13 +943,20 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                   <select
                     value={exam.deepAnalPressure}
                     onChange={(e) => {
+                      if (readOnly) return;
                       setExam((prev) => ({
                         ...prev,
                         deepAnalPressure: e.target.value as BinaryObservation,
                       }));
                       setResult(null);
                     }}
-                    style={selectStyle}
+                    disabled={readOnly}
+                    style={{
+                      ...selectStyle,
+                      ...(readOnly
+                        ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+                        : {}),
+                    }}
                   >
                     <option value=""></option>
                     <option value="Yes">Yes</option>
@@ -917,6 +1012,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                 <select
                   value={exam.right.lowestNonKeyMuscleWithMotorFunction}
                   onChange={(e) => {
+                    if (readOnly) return;
                     setExam((prev) => ({
                       ...prev,
                       right: {
@@ -926,7 +1022,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                     }));
                     setResult(null);
                   }}
-                  style={selectStyle}
+                  disabled={readOnly}
+                  style={{
+                    ...selectStyle,
+                    ...(readOnly
+                      ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+                      : {}),
+                  }}
                 >
                   <option value="">—</option>
                   {LEVELS.map((level) => (
@@ -950,6 +1052,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                 <select
                   value={exam.left.lowestNonKeyMuscleWithMotorFunction}
                   onChange={(e) => {
+                    if (readOnly) return;
                     setExam((prev) => ({
                       ...prev,
                       left: {
@@ -959,7 +1062,13 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                     }));
                     setResult(null);
                   }}
-                  style={selectStyle}
+                  disabled={readOnly}
+                  style={{
+                    ...selectStyle,
+                    ...(readOnly
+                      ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+                      : {}),
+                  }}
                 >
                   <option value="">—</option>
                   {LEVELS.map((level) => (
@@ -999,7 +1108,11 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
             <textarea
               id="assessment-comments-main"
               value={comments}
-              onChange={(e) => setComments(e.target.value)}
+              onChange={(e) => {
+                if (readOnly) return;
+                setComments(e.target.value);
+              }}
+              readOnly={readOnly}
               rows={4}
               placeholder="Enter clinical notes…"
               style={{
@@ -1013,12 +1126,29 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
                 color: NAVY,
                 resize: "vertical",
                 minHeight: "88px",
+                ...(readOnly
+                  ? { backgroundColor: "#F3F4F6", cursor: "not-allowed" }
+                  : {}),
               }}
             />
+            {readOnly ? (
+              <p
+                style={{
+                  margin: "16px 0 0",
+                  fontSize: "13px",
+                  color: "#6B7280",
+                  fontWeight: 600,
+                }}
+              >
+                This assessment is finalised and cannot be edited.
+              </p>
+            ) : null}
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gridTemplateColumns: readOnly
+                  ? "minmax(0, 1fr)"
+                  : "repeat(3, minmax(0, 1fr))",
                 gap: "12px",
                 marginTop: "16px",
               }}
@@ -1035,30 +1165,34 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
               >
                 Export PDF
               </button>
-              <button
-                type="button"
-                disabled={saving}
-                style={{
-                  ...actionBarBtnOutline,
-                  opacity: saving ? 0.65 : 1,
-                  cursor: saving ? "not-allowed" : "pointer",
-                }}
-                onClick={() => void handleSaveDraft()}
-              >
-                Save as Draft
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                style={{
-                  ...actionBarBtnPrimary,
-                  opacity: saving ? 0.65 : 1,
-                  cursor: saving ? "not-allowed" : "pointer",
-                }}
-                onClick={() => void handleSaveFinal()}
-              >
-                Save as Final Version
-              </button>
+              {!readOnly ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    style={{
+                      ...actionBarBtnOutline,
+                      opacity: saving ? 0.65 : 1,
+                      cursor: saving ? "not-allowed" : "pointer",
+                    }}
+                    onClick={() => void handleSaveDraft()}
+                  >
+                    Save as Draft
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    style={{
+                      ...actionBarBtnPrimary,
+                      opacity: saving ? 0.65 : 1,
+                      cursor: saving ? "not-allowed" : "pointer",
+                    }}
+                    onClick={() => void handleSaveFinal()}
+                  >
+                    Save as Final Version
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
@@ -1068,6 +1202,7 @@ export default function AssessmentForm({ patientId }: AssessmentFormProps) {
           onCalculate={updateClassification}
           motorPreview={totalsPreview}
           columnTotals={columnTotals}
+          readOnly={readOnly}
         />
       </div>
     </>
