@@ -1,67 +1,27 @@
 "use client";
 
 import AuthGuard from "@/components/AuthGuard";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import Buttons from "@/components/landing/buttons";
 import RecentAssessments from "@/components/landing/recentAssessments";
 import UpcomingReviews from "@/components/landing/upcoming";
-import { supabase } from "@/lib/supabaseClient";
 import type { ClinicianPatientFilter } from "@/lib/clinicianPatientFilter";
 import { readStaffIdFromStorage } from "@/lib/staffSession";
 
 export default function DashboardClient() {
-  const [onlyMyPatients, setOnlyMyPatients] = useState(false);
-  const [clinicianFilter, setClinicianFilter] =
-    useState<ClinicianPatientFilter>({
-      status: "all",
-    });
+  const [showAllAssessments, setShowAllAssessments] = useState(false);
   const [staffId, setStaffId] = useState<number | null>(null);
 
   useEffect(() => {
     setStaffId(readStaffIdFromStorage());
   }, []);
 
-  useEffect(() => {
-    if (!onlyMyPatients) {
-      setClinicianFilter({ status: "all" });
-      return;
-    }
-
-    const sid = staffId ?? readStaffIdFromStorage();
-    if (sid == null) {
-      setClinicianFilter({ status: "ready", patientIds: new Set() });
-      return;
-    }
-
-    setClinicianFilter({ status: "loading" });
-    let cancelled = false;
-
-    (async () => {
-      const { data, error } = await supabase
-        .from("Assessment")
-        .select("PATIENTpatient_id")
-        .eq("STAFFstaff_id", sid);
-
-      if (cancelled) return;
-
-      if (error) {
-        setClinicianFilter({ status: "ready", patientIds: new Set() });
-        return;
-      }
-
-      const ids = new Set<number>();
-      for (const row of data ?? []) {
-        const id = (row as { PATIENTpatient_id: number }).PATIENTpatient_id;
-        if (typeof id === "number") ids.add(id);
-      }
-      setClinicianFilter({ status: "ready", patientIds: ids });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [onlyMyPatients, staffId]);
+  const clinicianFilter: ClinicianPatientFilter = useMemo(() => {
+    if (showAllAssessments) return { status: "all" };
+    if (staffId == null) return { status: "loading" };
+    return { status: "mine", staffId };
+  }, [showAllAssessments, staffId]);
 
   return (
     <AuthGuard>
@@ -128,9 +88,9 @@ export default function DashboardClient() {
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={onlyMyPatients}
-                  aria-label="Show only patients assigned to me"
-                  onClick={() => setOnlyMyPatients((v) => !v)}
+                  aria-checked={showAllAssessments}
+                  aria-label="Show all assessments"
+                  onClick={() => setShowAllAssessments((v) => !v)}
                   style={{
                     position: "relative",
                     width: "44px",
@@ -140,7 +100,7 @@ export default function DashboardClient() {
                     cursor: "pointer",
                     padding: 0,
                     flexShrink: 0,
-                    backgroundColor: onlyMyPatients ? "#15284C" : "#D1D5DB",
+                    backgroundColor: showAllAssessments ? "#15284C" : "#D1D5DB",
                     transition: "background-color 0.15s ease",
                   }}
                 >
@@ -148,7 +108,7 @@ export default function DashboardClient() {
                     style={{
                       position: "absolute",
                       top: "3px",
-                      left: onlyMyPatients ? "23px" : "3px",
+                      left: showAllAssessments ? "23px" : "3px",
                       width: "18px",
                       height: "18px",
                       borderRadius: "50%",
@@ -166,7 +126,7 @@ export default function DashboardClient() {
                     userSelect: "none",
                   }}
                 >
-                  My Assessments
+                  Show all assessments
                 </span>
               </div>
 

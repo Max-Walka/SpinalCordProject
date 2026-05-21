@@ -9,6 +9,7 @@ import AssessmentForm, {
 import PatientAssessmentBar from "@/components/assessment/PatientAssessmentBar";
 import { supabase } from "@/lib/supabaseClient";
 import { loadAssessmentContext } from "@/lib/assessmentExamData";
+import { parseAssessmentIdParam } from "@/lib/assessmentId";
 import AuthGuard from "@/components/AuthGuard";
 
 function formatNZDate(ds: string | null | undefined): string {
@@ -112,17 +113,9 @@ async function loadPatientBar(nhi: string) {
 function AssessmentNewInner() {
   const searchParams = useSearchParams();
   const nhiParam = searchParams.get("nhi");
-  const assessmentIdParam = searchParams.get("assessmentId");
-
-  const parsedAssessmentId = assessmentIdParam
-    ? Number(assessmentIdParam)
-    : null;
-  const assessmentId =
-    parsedAssessmentId != null &&
-    Number.isInteger(parsedAssessmentId) &&
-    parsedAssessmentId > 0
-      ? parsedAssessmentId
-      : null;
+  const assessmentId = parseAssessmentIdParam(
+    searchParams.get("assessmentId")
+  );
 
   const [fetching, setFetching] = useState(
     Boolean(nhiParam) || assessmentId != null

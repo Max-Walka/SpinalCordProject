@@ -229,7 +229,7 @@ function toISNCSCIExam(exam: UiExam): ISNCSCIExam {
 type AssessmentFormProps = {
   patientId: number | null;
   patientNhi?: string | null;
-  initialAssessmentId?: number | null;
+  initialAssessmentId?: string | null;
   initialExam?: UiExam | null;
   initialComments?: string;
   readOnly?: boolean;
@@ -251,7 +251,7 @@ export default function AssessmentForm({
   const [exam, setExam] = useState<UiExam>(initialExam ?? defaultExam);
   const [result, setResult] = useState<unknown>(null);
   const [comments, setComments] = useState(initialComments);
-  const [linkedAssessmentId, setLinkedAssessmentId] = useState<number | null>(
+  const [linkedAssessmentId, setLinkedAssessmentId] = useState<string | null>(
     initialAssessmentId
   );
   const [saving, setSaving] = useState(false);
