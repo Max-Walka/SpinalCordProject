@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { supabase } from "@/lib/supabaseClient";
 import AuthGuard from "@/components/AuthGuard";
+import { getLoggedInStaff } from "@/lib/auth";
 
 type FormData = {
   firstName: string;
@@ -112,19 +113,9 @@ export default function ConfirmPatientContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    const storedStaffInfo = localStorage.getItem("staffInfo");
-
-    if (!storedStaffInfo) return;
-
-    try {
-      const parsed = JSON.parse(storedStaffInfo) as {
-        username: string;
-        fullName: string;
-      };
-
-      setLoggedInGpName(parsed.fullName || "Not recorded");
-    } catch {
-      setLoggedInGpName("Not recorded");
+    const staff = getLoggedInStaff();
+    if (staff?.fullName) {
+      setLoggedInGpName(staff.fullName);
     }
   }, []);
 

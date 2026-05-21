@@ -8,6 +8,7 @@ import {
   DEFAULT_CLINICIAN_PATIENT_FILTER,
   type ClinicianPatientFilter,
 } from "@/lib/clinicianPatientFilter";
+import TablePagination from "@/components/landing/TablePagination";
 
 const PAGE_SIZE = 12;
 
@@ -350,8 +351,6 @@ export default function RecentAssessments({
     fetchRecentAssessments();
   }, [clinicianFilterKey, uiFilterKey, page, clinicianPatientFilter, filterSelections]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
   const headerCellStyle: CSSProperties = {
     padding: "14px 12px",
     minHeight: "48px",
@@ -643,65 +642,12 @@ export default function RecentAssessments({
       </div>
 
       {!loading && !error && totalCount > 0 && (
-        <div
-          style={{
-            flexShrink: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "12px 16px",
-            flexWrap: "nowrap",
-            minHeight: "72px",
-            paddingTop: "14px",
-            marginTop: "10px",
-            borderTop: "1px solid #E5E7EB",
-          }}
-        >
-          <button
-            type="button"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            style={{
-              height: "38px",
-              padding: "0 14px",
-              fontSize: "14px",
-              fontWeight: 500,
-              fontFamily: "inherit",
-              color: page <= 1 ? "#9CA3AF" : "#15284C",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #D6D6D6",
-              borderRadius: "6px",
-              cursor: page <= 1 ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Previous page
-          </button>
-          <span style={{ fontSize: "14px", color: "#6B7280", whiteSpace: "nowrap" }}>
-            Page {page} of {totalPages} ({(page - 1) * PAGE_SIZE + 1}-
-            {Math.min(page * PAGE_SIZE, totalCount)} of {totalCount})
-          </span>
-          <button
-            type="button"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
-            style={{
-              height: "38px",
-              padding: "0 14px",
-              fontSize: "14px",
-              fontWeight: 500,
-              fontFamily: "inherit",
-              color: page >= totalPages ? "#9CA3AF" : "#15284C",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #D6D6D6",
-              borderRadius: "6px",
-              cursor: page >= totalPages ? "not-allowed" : "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Next page
-          </button>
-        </div>
+        <TablePagination
+          page={page}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

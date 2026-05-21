@@ -7,6 +7,7 @@ type TotalsClassification = Record<string, unknown>;
 type Props = {
   result: unknown;
   onCalculate: () => void;
+  readOnly?: boolean;
   motorPreview: {
     ur: number;
     ul: number;
@@ -74,6 +75,7 @@ function ResultBox({
 export default function ResultsPanel({
   result,
   onCalculate,
+  readOnly = false,
   motorPreview,
   columnTotals,
 }: Props) {
@@ -183,11 +185,15 @@ export default function ResultsPanel({
           }}
         >
           <p style={{ margin: 0, fontSize: "12px", color: "#5C667A", flex: "1 1 160px", lineHeight: 1.4 }}>
-            Each score fills every level below it in that column automatically (top-down scoring).
+            {readOnly
+              ? "Final classification results for this assessment."
+              : "Each score fills every level below it in that column automatically (top-down scoring)."}
           </p>
-          <button type="button" onClick={onCalculate} style={primaryBtn}>
-            Update
-          </button>
+          {!readOnly ? (
+            <button type="button" onClick={onCalculate} style={primaryBtn}>
+              Update
+            </button>
+          ) : null}
         </div>
 
         <Section title="Motor subscores">

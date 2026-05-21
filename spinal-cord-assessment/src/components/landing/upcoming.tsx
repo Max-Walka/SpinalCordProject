@@ -7,6 +7,9 @@ import {
   DEFAULT_CLINICIAN_PATIENT_FILTER,
   type ClinicianPatientFilter,
 } from "@/lib/clinicianPatientFilter";
+import TablePagination from "@/components/landing/TablePagination";
+
+const PAGE_SIZE = 12;
 
 type UpcomingReviewsProps = {
   clinicianPatientFilter?: ClinicianPatientFilter;
@@ -85,6 +88,7 @@ export default function UpcomingReviews({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bellHover, setBellHover] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     async function fetchUpcomingReviews() {
@@ -190,6 +194,21 @@ export default function UpcomingReviews({
     });
     return { sortedRows: sorted, overdueCount: overdue };
   }, [rows, clinicianPatientFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [clinicianPatientFilter]);
+
+  const totalCount = sortedRows.length;
+  const paginatedRows = sortedRows.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalCount]);
 
   const headerCellStyle: React.CSSProperties = {
     padding: "14px 12px",
@@ -407,7 +426,7 @@ export default function UpcomingReviews({
                 </td>
               </tr>
             ) : (
-              sortedRows.map((row) => {
+              paginatedRows.map((row) => {
                 const dateColor = row.isOverdue ? "#DC2626" : row.isToday ? "#C0392B" : "#15284C";
                 const defaultBg = row.isOverdue ? "#FEF2F2" : "transparent";
                 return (
@@ -447,6 +466,15 @@ export default function UpcomingReviews({
           </tbody>
         </table>
       </div>
+
+      {!loading && !error && totalCount > 0 && (
+        <TablePagination
+          page={page}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

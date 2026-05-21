@@ -190,8 +190,8 @@ export default function Drafts({
     return sortedDrafts.filter((d) => clinicianPatientFilter.patientIds.has(d.patientId));
   }, [sortedDrafts, clinicianPatientFilter]);
 
-  function openDraft(patientId: number) {
-    router.push(`/history/${patientId}`);
+  function openDraft(assessmentId: number) {
+    router.push(`/assessment?assessmentId=${assessmentId}`);
   }
 
   const headerCellStyle: React.CSSProperties = {
@@ -288,7 +288,7 @@ export default function Drafts({
               visibleDrafts.map((draft) => (
                 <tr
                   key={draft.id}
-                  onClick={() => openDraft(draft.patientId)}
+                  onClick={() => openDraft(draft.assessmentId)}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = "#F8FAFC";
                   }}
