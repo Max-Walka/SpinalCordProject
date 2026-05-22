@@ -102,7 +102,7 @@ npm run lint    # ESLint
 |------|---------|
 | `/login` | Staff login |
 | `/dashboard` | Recent assessments, drafts, upcoming reviews |
-| `/patients/search` | Find patient by NHI, start assessment |
+| `/search` | Find patient by NHI, start assessment |
 | `/assessment?nhi=…` | New assessment for a patient |
 | `/assessment?assessmentId=AB12` | Open existing assessment (LLNN id) |
 | `/history/[patientId]` | Patient assessment history |

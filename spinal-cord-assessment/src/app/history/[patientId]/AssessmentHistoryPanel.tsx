@@ -262,7 +262,7 @@ export default function AssessmentHistoryPanel({
 
           <div style={{ display: "flex", gap: 12 }}>
             <Link
-              href={`/assessment/new?nhi=${encodeURIComponent(nhiNumber)}`}
+              href={`/assessment?nhi=${encodeURIComponent(nhiNumber)}`}
               style={{
                 padding: "10px 16px",
                 backgroundColor: NAVY,
