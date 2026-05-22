@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import AuthGuard from "@/components/AuthGuard";
 import Header from "@/components/layout/Header";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -390,6 +391,7 @@ export default function PatientSearchPage() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
+    <AuthGuard>
     <div
       style={{
         minHeight: "100vh",
@@ -979,5 +981,6 @@ export default function PatientSearchPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

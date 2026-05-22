@@ -18,5 +18,10 @@ export type StaffInfo = {
   }
   
   export function logoutStaff() {
+    if (typeof window === "undefined") return;
     sessionStorage.removeItem("staffInfo");
+  }
+
+  export function isStaffLoggedIn(): boolean {
+    return getLoggedInStaff() != null;
   }

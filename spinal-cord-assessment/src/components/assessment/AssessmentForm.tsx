@@ -233,6 +233,7 @@ type AssessmentFormProps = {
   initialExam?: UiExam | null;
   initialComments?: string;
   readOnly?: boolean;
+  onAssessmentIdChange?: (assessmentId: string) => void;
 };
 
 export default function AssessmentForm({
@@ -242,6 +243,7 @@ export default function AssessmentForm({
   initialExam = null,
   initialComments = "",
   readOnly = false,
+  onAssessmentIdChange,
 }: AssessmentFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -463,6 +465,7 @@ export default function AssessmentForm({
         comments,
       });
       setLinkedAssessmentId(assessmentId);
+      onAssessmentIdChange?.(assessmentId);
 
       const calculated = tryComputeClassification(exam);
       if (calculated) {
@@ -525,6 +528,7 @@ export default function AssessmentForm({
         alsGrade: aisGrade,
       });
       setLinkedAssessmentId(assessmentId);
+      onAssessmentIdChange?.(assessmentId);
       showSaveSuccess();
     } catch (e) {
       showSaveError(e instanceof Error ? e.message : "Could not save.");

@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isStaffLoggedIn } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (isStaffLoggedIn()) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +51,7 @@ export default function LoginPage() {
       })
     );
 
-    router.push("/dashboard");
+    router.replace("/dashboard");
   }
 
   return (

@@ -32,7 +32,8 @@ export default function Header() {
   function handleLogout() {
     logoutStaff();
     setMenuOpen(false);
-    router.push("/login");
+    setStaffName("");
+    router.replace("/login");
   }
 
   return (
