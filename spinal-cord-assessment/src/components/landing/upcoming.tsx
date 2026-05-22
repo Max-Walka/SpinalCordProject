@@ -16,9 +16,10 @@ type UpcomingReviewsProps = {
 };
 
 type AssessmentRow = {
-  assessment_id: number;
+  assessment_id: string;
   PATIENTpatient_id: number;
   review_date: string;
+  STAFFstaff_id: number;
 };
 
 type PatientRow = {
@@ -33,7 +34,7 @@ type PatientNameRow = {
 };
 
 type UpcomingReviewDisplay = {
-  id: number;
+  id: string;
   patientId: number;
   nhi: string;
   patientName: string;
@@ -79,30 +80,9 @@ function formatReviewDate(dateString: string) {
   };
 }
 
-<<<<<<< HEAD
-function SkeletonRows({ count }: { count: number }) {
-  const widths = ["skeleton-bar-short", "skeleton-bar-full", "skeleton-bar-short"];
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <tr key={i} className="skeleton-row">
-          {widths.map((w, j) => (
-            <td key={j}>
-              <div className={`skeleton-bar ${w}`} />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
-  );
-}
-
-export default function UpcomingReviews() {
-=======
 export default function UpcomingReviews({
   clinicianPatientFilter = DEFAULT_CLINICIAN_PATIENT_FILTER,
 }: UpcomingReviewsProps) {
->>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
   const router = useRouter();
 
   const [rows, setRows] = useState<UpcomingReviewDisplay[]>([]);
@@ -113,21 +93,30 @@ export default function UpcomingReviews({
 
   useEffect(() => {
     async function fetchUpcomingReviews() {
-      if (!supabase) {
-        setError("Supabase is not configured.");
-        setLoading(false);
+      if (clinicianPatientFilter.status === "loading") {
+        setLoading(true);
+        setRows([]);
+        setError(null);
         return;
       }
 
       setLoading(true);
       setError(null);
 
-      const { data: assessmentData, error: assessmentError } = await supabase
+      let assessmentQuery = supabase
         .from("Assessment")
-        .select("assessment_id, PATIENTpatient_id, review_date")
+        .select("assessment_id, PATIENTpatient_id, review_date, STAFFstaff_id")
         .not("review_date", "is", null)
-        .order("review_date", { ascending: true })
-        .limit(50);
+        .order("review_date", { ascending: true });
+
+      if (clinicianPatientFilter.status === "mine") {
+        assessmentQuery = assessmentQuery.eq(
+          "STAFFstaff_id",
+          clinicianPatientFilter.staffId
+        );
+      }
+
+      const { data: assessmentData, error: assessmentError } = await assessmentQuery;
 
       if (assessmentError) {
         setError(`Upcoming reviews query failed: ${assessmentError.message}`);
@@ -135,7 +124,14 @@ export default function UpcomingReviews({
         return;
       }
 
-      const assessments = (assessmentData ?? []) as AssessmentRow[];
+      const latestPerPatient = new Map<number, AssessmentRow>();
+      for (const row of (assessmentData ?? []) as AssessmentRow[]) {
+        if (!latestPerPatient.has(row.PATIENTpatient_id)) {
+          latestPerPatient.set(row.PATIENTpatient_id, row);
+        }
+      }
+
+      const assessments = Array.from(latestPerPatient.values());
 
       if (assessments.length === 0) {
         setRows([]);
@@ -200,19 +196,12 @@ export default function UpcomingReviews({
     }
 
     fetchUpcomingReviews();
-  }, []);
+  }, [clinicianPatientFilter]);
 
   const filterLoading = clinicianPatientFilter.status === "loading";
 
   const { sortedRows, overdueCount } = useMemo(() => {
-    let list: UpcomingReviewDisplay[];
-    if (clinicianPatientFilter.status === "loading") {
-      list = [];
-    } else if (clinicianPatientFilter.status === "all") {
-      list = rows;
-    } else {
-      list = rows.filter((r) => clinicianPatientFilter.patientIds.has(r.patientId));
-    }
+    const list = filterLoading ? [] : rows;
 
     const overdue = list.filter((r) => r.isOverdue).length;
     const sorted = [...list].sort((a, b) => {
@@ -220,7 +209,7 @@ export default function UpcomingReviews({
       return a.reviewDateMs - b.reviewDateMs;
     });
     return { sortedRows: sorted, overdueCount: overdue };
-  }, [rows, clinicianPatientFilter]);
+  }, [rows, filterLoading]);
 
   useEffect(() => {
     setPage(1);
@@ -257,20 +246,11 @@ export default function UpcomingReviews({
     textAlign: "center",
   };
 
-  function handleRowKeyDown(e: React.KeyboardEvent, patientId: number) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      router.push(`/history/${patientId}`);
-    }
-  }
-
   return (
     <div
-      className="dashboard-card"
       style={{
         backgroundColor: "#FFFFFF",
         border: "1px solid #D6D6D6",
-        borderRadius: "8px",
         padding: "18px",
         width: "100%",
         color: "#15284C",
@@ -289,27 +269,8 @@ export default function UpcomingReviews({
           gap: "10px",
           marginBottom: "14px",
           flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
         }}
       >
-<<<<<<< HEAD
-        Upcoming Reviews
-        {!loading && rows.length > 0 && (
-          <span style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: "#15284C",
-            backgroundColor: "#E8EDF4",
-            borderRadius: "10px",
-            padding: "1px 8px",
-          }}>
-            {rows.length}
-          </span>
-        )}
-      </h2>
-=======
         <h2
           style={{
             fontSize: "22px",
@@ -415,7 +376,6 @@ export default function UpcomingReviews({
           ) : null}
         </div>
       </div>
->>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
 
       <div
         style={{
@@ -435,21 +395,18 @@ export default function UpcomingReviews({
         >
           <thead>
             <tr>
-              <th scope="col" style={headerCellStyle}>NHI</th>
-              <th scope="col" style={headerCellStyle}>Patient Name</th>
-              <th scope="col" style={headerCellStyle}>Date</th>
+              <th style={headerCellStyle}>Assessment ID</th>
+              <th style={headerCellStyle}>NHI</th>
+              <th style={headerCellStyle}>Patient Name</th>
+              <th style={headerCellStyle}>Date</th>
             </tr>
           </thead>
 
           <tbody>
-<<<<<<< HEAD
-            {loading ? (
-              <SkeletonRows count={3} />
-=======
             {loading || filterLoading ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={4}
                   style={{
                     padding: "24px",
                     textAlign: "center",
@@ -459,11 +416,10 @@ export default function UpcomingReviews({
                   Loading...
                 </td>
               </tr>
->>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
             ) : error ? (
               <tr>
                 <td
-                  colSpan={3}
+                  colSpan={4}
                   style={{
                     padding: "24px",
                     textAlign: "center",
@@ -475,61 +431,18 @@ export default function UpcomingReviews({
               </tr>
             ) : sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={3}>
-                  <div className="empty-state">
-                    <svg className="empty-state-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                      <line x1="16" y1="2" x2="16" y2="6" />
-                      <line x1="8" y1="2" x2="8" y2="6" />
-                      <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
-                    <div className="empty-state-text">
-                      No upcoming reviews scheduled
-                    </div>
-                  </div>
+                <td
+                  colSpan={4}
+                  style={{
+                    padding: "24px",
+                    textAlign: "center",
+                    color: "#6B7280",
+                  }}
+                >
+                  No upcoming reviews
                 </td>
               </tr>
             ) : (
-<<<<<<< HEAD
-              rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="clickable-row"
-                  role="link"
-                  tabIndex={0}
-                  aria-label={`View patient ${row.patientName}`}
-                  onClick={() => router.push(`/history/${row.patientId}`)}
-                  onKeyDown={(e) => handleRowKeyDown(e, row.patientId)}
-                >
-                  <td className="nhi-cell" style={bodyCellStyle}>{row.nhi}</td>
-                  <td
-                    style={{ ...bodyCellStyle, maxWidth: "140px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                    title={row.patientName}
-                  >
-                    {row.patientName}
-                  </td>
-                  <td style={bodyCellStyle}>
-                    {row.isToday ? (
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "2px 10px",
-                          borderRadius: "12px",
-                          backgroundColor: "#15284C",
-                          color: "#FFFFFF",
-                          fontWeight: 600,
-                          fontSize: "13px",
-                        }}
-                      >
-                        Today
-                      </span>
-                    ) : (
-                      row.date
-                    )}
-                  </td>
-                </tr>
-              ))
-=======
               paginatedRows.map((row) => {
                 const dateColor = row.isOverdue ? "#DC2626" : row.isToday ? "#C0392B" : "#15284C";
                 const defaultBg = row.isOverdue ? "#FEF2F2" : "transparent";
@@ -549,6 +462,9 @@ export default function UpcomingReviews({
                     }}
                   >
                     <td style={{ ...bodyCellStyle, color: row.isOverdue ? "#DC2626" : "#15284C" }}>
+                      {row.id}
+                    </td>
+                    <td style={{ ...bodyCellStyle, color: row.isOverdue ? "#DC2626" : "#15284C" }}>
                       {row.nhi}
                     </td>
                     <td style={{ ...bodyCellStyle, color: row.isOverdue ? "#DC2626" : "#15284C" }}>
@@ -566,7 +482,6 @@ export default function UpcomingReviews({
                   </tr>
                 );
               })
->>>>>>> f3e83f65b8bd27a194e1f88bad6d30304196e806
             )}
           </tbody>
         </table>
